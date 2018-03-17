@@ -1,0 +1,8 @@
+[package]
+name = "myodine"
+version = "0.1.0"
+authors = ["Alex Nichol <unixpickle@gmail.com>"]
+
+[lib]
+name = "myodine"
+path = "src/mod.rs"
