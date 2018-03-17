@@ -1,3 +1,4 @@
+use std::fmt::{Display, Error, Formatter};
 use std::str::FromStr;
 
 pub struct Domain(Vec<String>);
@@ -15,7 +16,7 @@ impl Domain {
             }
             total_len += label.len() + 1usize;
             let chars: Vec<char> = label.chars().collect();
-            if in_char_range('a', 'z', chars[0]) && !in_char_range('A', 'Z', chars[0]) {
+            if !in_char_range('a', 'z', chars[0]) && !in_char_range('A', 'Z', chars[0]) {
                 return Err(format!("domain label must start with a-zA-Z"));
             }
             if chars[chars.len() - 1] == '-' {
@@ -43,6 +44,47 @@ impl FromStr for Domain {
     }
 }
 
+impl Display for Domain {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        for (i, x) in (&self.0).into_iter().enumerate() {
+            if i != 0 {
+                write!(f, ".")?;
+            }
+            write!(f, "{}", x)?;
+        }
+        Ok(())
+    }
+}
+
 fn in_char_range(start: char, end: char, ch: char) -> bool {
     ch >= start && ch <= end
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn successful_parse() {
+        let domain: Domain = "zoo-1bar.Aol9.AOE".parse().unwrap();
+        assert_eq!(vec![String::from("zoo-1bar"), String::from("Aol9"), String::from("AOE")],
+            domain.0);
+    }
+
+    #[test]
+    fn unsuccessful_parse() {
+        let strs = vec![String::from("zoo-.google.com"), String::from("9foo.google.com"),
+            "a".repeat(64), format!("{}.com", "aoeu.".repeat(50))];
+        for domain in strs {
+            assert!(Domain::from_str(&domain).is_err());
+        }
+    }
+
+    #[test]
+    fn display_domain() {
+        let examples = vec!["zoo-1bar.Aol9.AOE", "play.google.com"];
+        for s in examples {
+            assert_eq!(s, format!("{}", Domain::from_str(&s).unwrap()));
+        }
+    }
 }
