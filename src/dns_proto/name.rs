@@ -4,6 +4,7 @@ use std::str::FromStr;
 use dns_proto::decoding::{Decoder, DecPacket};
 use dns_proto::encoding::{Encoder, EncPacket};
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Domain(Vec<String>);
 
 impl Domain {
@@ -134,6 +135,31 @@ mod tests {
         let examples = vec!["zoo-1bar.Aol9.AOE", "play.google.com"];
         for s in examples {
             assert_eq!(s, format!("{}", Domain::from_str(&s).unwrap()));
+        }
+    }
+
+    #[test]
+    fn valid_pointer() {
+        let data = vec![
+            0u8, 0u8, 3u8, 'c' as u8, 'o' as u8, 'm' as u8,
+            0u8, 1u8, 2u8, // filler, for no good reason
+            2u8, 'a' as u8, 'b' as u8, 0xc0u8, 2u8
+        ];
+        let mut dec_packet = DecPacket::new(data).seek(9, 14).unwrap();
+        let value = Domain::dns_decode(&mut dec_packet).unwrap();
+        assert_eq!(value, "ab.com".parse().unwrap());
+    }
+
+    #[test]
+    fn invalid_pointers() {
+        let datas = vec![
+            vec![0xc0u8, 0u8],
+            vec![0xc0u8, 10u8],
+            vec![8u8, 0u8]
+        ];
+        for data in datas {
+            let mut packet = DecPacket::new(data);
+            assert!(Domain::dns_decode(&mut packet).is_err());
         }
     }
 }

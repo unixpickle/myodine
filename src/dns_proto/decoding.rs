@@ -4,12 +4,19 @@ pub struct DecPacket {
 }
 
 impl DecPacket {
+    pub fn new(data: Vec<u8>) -> DecPacket {
+        DecPacket{
+            buffer: data,
+            offset: 0
+        }
+    }
+
     pub fn current_offset(&self) -> usize {
         self.offset
     }
 
     pub fn seek(&self, new_offset: usize, new_size: usize) -> Result<DecPacket, String> {
-        if new_offset >= new_size {
+        if new_offset >= new_size || new_size > self.buffer.len() {
             return Err(String::from("seek out of bounds"));
         }
         let mut res = Vec::new();
@@ -37,7 +44,7 @@ pub trait Decoder where Self: Sized {
 
 impl Decoder for u8 {
     fn dns_decode(packet: &mut DecPacket) -> Result<u8, String> {
-        if packet.offset < packet.buffer.len() {
+        if packet.offset >= packet.buffer.len() {
             Err(String::from("buffer underflow"))
         } else {
             packet.offset += 1;
