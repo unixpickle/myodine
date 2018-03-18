@@ -1,6 +1,7 @@
 use std::fmt::{Display, Error, Formatter};
 use std::str::FromStr;
 
+use dns_proto::decoding::{Decoder, DecPacket};
 use dns_proto::encoding::{Encoder, EncPacket};
 
 pub struct Domain(Vec<String>);
@@ -73,6 +74,34 @@ impl Encoder for Domain {
             }
         }
         0u8.dns_encode(packet);
+    }
+}
+
+impl Decoder for Domain {
+    fn dns_decode(packet: &mut DecPacket) -> Result<Domain, String> {
+        let mut parts = Vec::<String>::new();
+        loop {
+            let size = u8::dns_decode(packet)?;
+            if size & 0xc0 == 0xc0 {
+                let addr_lower = u8::dns_decode(packet)?;
+                let addr = (((size & 0x3f) as usize) << 8) | (addr_lower as usize);
+                let mut seeked = packet.seek(addr, packet.current_offset() - 2)?;
+                let pointer_domain = Domain::dns_decode(&mut seeked)?;
+                for part in pointer_domain.0 {
+                    parts.push(part);
+                }
+                return Domain::from_parts(parts);
+            } else if size & 0xc0 != 0 {
+                return Err(String::from("invalid label length field"))
+            } else if size == 0 {
+                return Domain::from_parts(parts);
+            } else {
+                match String::from_utf8(packet.read_bytes(size as usize)?) {
+                    Ok(s) => parts.push(s),
+                    Err(_) => return Err(String::from("invalid UTF-8 label"))
+                }
+            }
+        }
     }
 }
 

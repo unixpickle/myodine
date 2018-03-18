@@ -3,6 +3,34 @@ pub struct DecPacket {
     offset: usize
 }
 
+impl DecPacket {
+    pub fn current_offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn seek(&self, new_offset: usize, new_size: usize) -> Result<DecPacket, String> {
+        if new_offset >= new_size {
+            return Err(String::from("seek out of bounds"));
+        }
+        let mut res = Vec::new();
+        for x in &self.buffer[0..new_size] {
+            res.push(*x);
+        }
+        Ok(DecPacket{
+            buffer: res,
+            offset: new_offset,
+        })
+    }
+
+    pub fn read_bytes(&mut self, num_bytes: usize) -> Result<Vec<u8>, String> {
+        let mut res = Vec::new();
+        for _ in 0..num_bytes {
+            res.push(u8::dns_decode(self)?);
+        }
+        Ok(res)
+    }
+}
+
 pub trait Decoder where Self: Sized {
     fn dns_decode(packet: &mut DecPacket) -> Result<Self, String>;
 }
