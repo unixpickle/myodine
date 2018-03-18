@@ -1,6 +1,8 @@
 use std::fmt::{Display, Error, Formatter};
 use std::str::FromStr;
 
+use dns_proto::encoding::{Encoder, EncPacket};
+
 pub struct Domain(Vec<String>);
 
 impl Domain {
@@ -57,6 +59,20 @@ impl Display for Domain {
             write!(f, "{}", x)?;
         }
         Ok(())
+    }
+}
+
+impl Encoder for Domain {
+    fn dns_encode(&self, packet: &mut EncPacket) {
+        for part in self.parts() {
+            let bytes = part.as_bytes();
+            assert!(bytes.len() < 64);
+            (bytes.len() as u8).dns_encode(packet);
+            for b in bytes {
+                b.dns_encode(packet);
+            }
+        }
+        0u8.dns_encode(packet);
     }
 }
 

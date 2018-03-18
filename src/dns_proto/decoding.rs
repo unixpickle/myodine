@@ -33,5 +33,3 @@ impl Decoder for u32 {
         Ok(((big_word as u32) << 16) | (small_word as u32))
     }
 }
-
-// TODO: decoder for domain.
