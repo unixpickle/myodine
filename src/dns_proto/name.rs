@@ -34,6 +34,10 @@ impl Domain {
         }
         Ok(Domain(labels))
     }
+
+    pub fn parts(&self) -> &[String] {
+        &self.0
+    }
 }
 
 impl FromStr for Domain {
