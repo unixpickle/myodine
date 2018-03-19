@@ -1,3 +1,5 @@
+use std::mem::size_of;
+
 pub struct DecPacket {
     buffer: Vec<u8>,
     offset: usize
@@ -66,5 +68,41 @@ impl Decoder for u32 {
         let big_word = u16::dns_decode(packet)?;
         let small_word = u16::dns_decode(packet)?;
         Ok(((big_word as u32) << 16) | (small_word as u32))
+    }
+}
+
+pub struct BitReader {
+    value: usize,
+    bits_remaining: usize
+}
+
+impl BitReader {
+    pub fn new<T: Into<usize> + Sized>(value: T) -> BitReader {
+        BitReader{
+            value: Into::into(value),
+            bits_remaining: 8 * size_of::<T>()
+        }
+    }
+
+    pub fn read_bit(&mut self) -> Option<bool> {
+        if self.bits_remaining == 0 {
+            None
+        } else {
+            self.bits_remaining -= 1;
+            let result = (self.value & 1) != 0;
+            self.value >>= 1;
+            Some(result)
+        }
+    }
+
+    pub fn read_bits(&mut self, num_bits: usize) -> Option<usize> {
+        let mut result = 0usize;
+        for _ in 0..num_bits {
+            result <<= 1;
+            if self.read_bit()? {
+                result |= 1;
+            }
+        }
+        Some(result)
     }
 }
