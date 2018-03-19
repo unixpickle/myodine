@@ -1,38 +1,45 @@
+use std::iter::IntoIterator;
 use std::mem::size_of;
 
 pub struct EncPacket(Vec<u8>);
 
+impl EncPacket {
+    pub fn encode_all<T: IntoIterator>(&mut self, x: T) -> Result<(), String>
+        where <T as IntoIterator>::Item: Encoder
+    {
+        for item in x.into_iter() {
+            item.dns_encode(self)?;
+        }
+        Ok(())
+    }
+}
+
 pub trait Encoder {
-    fn dns_encode(&self, packet: &mut EncPacket);
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String>;
 }
 
 impl Encoder for u8 {
-    fn dns_encode(&self, packet: &mut EncPacket) {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
         packet.0.push(*self);
+        Ok(())
     }
 }
 
 impl Encoder for u16 {
-    fn dns_encode(&self, packet: &mut EncPacket) {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
         packet.0.push((*self >> 8) as u8);
         packet.0.push((*self & 0xff) as u8);
+        Ok(())
     }
 }
 
 impl Encoder for u32 {
-    fn dns_encode(&self, packet: &mut EncPacket) {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
         packet.0.push((*self >> 24) as u8);
         packet.0.push(((*self >> 16) & 0xff) as u8);
         packet.0.push(((*self >> 8) & 0xff) as u8);
         packet.0.push((*self & 0xff) as u8);
-    }
-}
-
-impl<'a, T: Encoder> Encoder for &'a [T] {
-    fn dns_encode(&self, packet: &mut EncPacket) {
-        for x in *self {
-            x.dns_encode(packet);
-        }
+        Ok(())
     }
 }
 
@@ -63,11 +70,11 @@ impl BitWriter {
         }
     }
 
-    pub fn pack<T: From<usize> + Sized>(&self) -> Option<T> {
-        if self.bits_used == size_of::<T>() {
-            Some(From::from(self.value))
-        } else {
-            None
-        }
+    pub fn fits<T>(&self) -> bool {
+        self.bits_used == size_of::<T>()
+    }
+
+    pub fn value(&self) -> usize {
+        self.value
     }
 }
