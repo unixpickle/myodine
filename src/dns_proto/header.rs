@@ -7,7 +7,7 @@ pub enum Opcode {
     Status,
     Notify,
     Update,
-    Unknown
+    Unknown(u8)
 }
 
 pub enum ResponseCode {
@@ -22,7 +22,7 @@ pub enum ResponseCode {
     NXRRSet,
     NotAuth,
     NotZone,
-    Unknown
+    Unknown(u8)
 }
 
 pub struct Header {
@@ -49,13 +49,13 @@ impl Encoder for Header {
 
         let mut flags = BitWriter::new();
         flags.write_bit(self.is_response);
-        flags.write_bits(self.opcode.encode()?, 4);
+        flags.write_bits(self.opcode.encode(), 4);
         flags.write_bit(self.authoritative);
         flags.write_bit(self.truncated);
         flags.write_bit(self.recursion_desired);
         flags.write_bit(self.recursion_available);
         flags.write_bits(0, 3);
-        flags.write_bits(self.response_code.encode()?, 4);
+        flags.write_bits(self.response_code.encode(), 4);
         assert!(flags.fits::<u16>());
         (flags.value() as u16).dns_encode(packet)?;
 
@@ -101,14 +101,14 @@ impl Decoder for Header {
 }
 
 impl Opcode {
-    fn encode(&self) -> Result<usize, String> {
+    fn encode(&self) -> usize {
         match *self {
-            Opcode::Query => Ok(0),
-            Opcode::IQuery => Ok(1),
-            Opcode::Status => Ok(2),
-            Opcode::Notify => Ok(4),
-            Opcode::Update => Ok(5),
-            Opcode::Unknown => Err(String::from("unknown opcode"))
+            Opcode::Query => 0,
+            Opcode::IQuery => 1,
+            Opcode::Status => 2,
+            Opcode::Notify => 4,
+            Opcode::Update => 5,
+            Opcode::Unknown(x) => x as usize
         }
     }
 
@@ -119,26 +119,26 @@ impl Opcode {
             2 => Opcode::Status,
             4 => Opcode::Notify,
             5 => Opcode::Update,
-            _ => Opcode::Unknown
+            _ => Opcode::Unknown(value as u8)
         }
     }
 }
 
 impl ResponseCode {
-    fn encode(&self) -> Result<usize, String> {
+    fn encode(&self) -> usize {
         match *self {
-            ResponseCode::NoError => Ok(0),
-            ResponseCode::FormatError => Ok(1),
-            ResponseCode::ServerFailure => Ok(2),
-            ResponseCode::NXDomain => Ok(3),
-            ResponseCode::NotImplemented => Ok(4),
-            ResponseCode::Refused => Ok(5),
-            ResponseCode::YXDomain => Ok(6),
-            ResponseCode::YXRRSet => Ok(7),
-            ResponseCode::NXRRSet => Ok(8),
-            ResponseCode::NotAuth => Ok(9),
-            ResponseCode::NotZone => Ok(10),
-            ResponseCode::Unknown => Err(String::from("unknown response code"))
+            ResponseCode::NoError => 0,
+            ResponseCode::FormatError => 1,
+            ResponseCode::ServerFailure => 2,
+            ResponseCode::NXDomain => 3,
+            ResponseCode::NotImplemented => 4,
+            ResponseCode::Refused => 5,
+            ResponseCode::YXDomain => 6,
+            ResponseCode::YXRRSet => 7,
+            ResponseCode::NXRRSet => 8,
+            ResponseCode::NotAuth => 9,
+            ResponseCode::NotZone => 10,
+            ResponseCode::Unknown(x) => x
         }
     }
 
@@ -155,7 +155,7 @@ impl ResponseCode {
             8 => ResponseCode::NXRRSet,
             9 => ResponseCode::NotAuth,
             10 => ResponseCode::NotZone,
-            _ => ResponseCode::Unknown
+            _ => ResponseCode::Unknown(value as u8)
         }
     }
 }
