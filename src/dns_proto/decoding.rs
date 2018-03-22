@@ -1,5 +1,3 @@
-use std::mem::size_of;
-
 pub struct DecPacket {
     buffer: Vec<u8>,
     offset: usize
@@ -77,10 +75,10 @@ pub struct BitReader {
 }
 
 impl BitReader {
-    pub fn new<T: Into<usize> + Sized>(value: T) -> BitReader {
+    pub fn new(value: usize, bits: usize) -> BitReader {
         BitReader{
-            value: Into::into(value),
-            bits_remaining: 8 * size_of::<T>()
+            value: value,
+            bits_remaining: bits
         }
     }
 

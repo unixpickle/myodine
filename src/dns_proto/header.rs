@@ -1,4 +1,4 @@
-use dns_proto::decoding::{Decoder, DecPacket};
+use dns_proto::decoding::{Decoder, DecPacket, BitReader};
 use dns_proto::encoding::{Encoder, EncPacket, BitWriter};
 
 pub enum Opcode {
@@ -64,10 +64,41 @@ impl Encoder for Header {
     }
 }
 
-// impl Decoder for Header {
-//     fn dns_decode(packet: &mut DecPacket) -> Result<Header, String> {
-//     }
-// }
+impl Decoder for Header {
+    fn dns_decode(packet: &mut DecPacket) -> Result<Header, String> {
+        let identifier = Decoder::dns_decode(packet)?;
+
+        let mut flags = BitReader::new(u16::dns_decode(packet)? as usize, 16);
+        let is_response = flags.read_bit().unwrap();
+        let opcode = Opcode::decode(flags.read_bits(4).unwrap());
+        let authoritative = flags.read_bit().unwrap();
+        let truncated = flags.read_bit().unwrap();
+        let recursion_desired = flags.read_bit().unwrap();
+        let recursion_available = flags.read_bit().unwrap();
+        flags.read_bits(3).unwrap();
+        let response_code = ResponseCode::decode(flags.read_bits(4).unwrap());
+
+        let question_count = Decoder::dns_decode(packet)?;
+        let answer_count = Decoder::dns_decode(packet)?;
+        let authority_count = Decoder::dns_decode(packet)?;
+        let additional_count = Decoder::dns_decode(packet)?;
+
+        Ok(Header{
+            identifier: identifier,
+            is_response: is_response,
+            opcode: opcode,
+            authoritative: authoritative,
+            truncated: truncated,
+            recursion_desired: recursion_desired,
+            recursion_available: recursion_available,
+            response_code: response_code,
+            question_count: question_count,
+            answer_count: answer_count,
+            authority_count: authority_count,
+            additional_count: additional_count
+        })
+    }
+}
 
 impl Opcode {
     fn encode(&self) -> Result<usize, String> {
@@ -78,6 +109,17 @@ impl Opcode {
             Opcode::Notify => Ok(4),
             Opcode::Update => Ok(5),
             Opcode::Unknown => Err(String::from("unknown opcode"))
+        }
+    }
+
+    fn decode(value: usize) -> Opcode {
+        match value {
+            0 => Opcode::Query,
+            1 => Opcode::IQuery,
+            2 => Opcode::Status,
+            4 => Opcode::Notify,
+            5 => Opcode::Update,
+            _ => Opcode::Unknown
         }
     }
 }
@@ -97,6 +139,23 @@ impl ResponseCode {
             ResponseCode::NotAuth => Ok(9),
             ResponseCode::NotZone => Ok(10),
             ResponseCode::Unknown => Err(String::from("unknown response code"))
+        }
+    }
+
+    fn decode(value: usize) -> ResponseCode {
+        match value {
+            0 => ResponseCode::NoError,
+            1 => ResponseCode::FormatError,
+            2 => ResponseCode::ServerFailure,
+            3 => ResponseCode::NXDomain,
+            4 => ResponseCode::NotImplemented,
+            5 => ResponseCode::Refused,
+            6 => ResponseCode::YXDomain,
+            7 => ResponseCode::YXRRSet,
+            8 => ResponseCode::NXRRSet,
+            9 => ResponseCode::NotAuth,
+            10 => ResponseCode::NotZone,
+            _ => ResponseCode::Unknown
         }
     }
 }
