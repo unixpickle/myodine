@@ -43,3 +43,61 @@ pub enum Record {
     SOARecord(RecordHeader, SOADetails),
     Unknown(RecordHeader, Vec<u8>)
 }
+
+// impl Encoder for Record {
+//     fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
+//         // TODO: this.
+//     }
+// }
+
+// impl Decoder for Record {
+//     fn dns_decode(packet: &mut DecPacket) -> Result<Record, String> {
+//         // TODO: this.
+//     }
+// }
+
+impl RecordType {
+    fn encode(&self) -> u16 {
+        match *self {
+            RecordType::A => 1,
+            RecordType::NS => 2,
+            RecordType::CNAME => 5,
+            RecordType::SOA => 6,
+            RecordType::PTR => 12,
+            RecordType::MX => 15,
+            RecordType::TXT => 16,
+            RecordType::AAAA => 28,
+            RecordType::Unknown(x) => x
+        }
+    }
+
+    fn decode(value: u16) -> RecordType {
+        match value {
+            1 => RecordType::A,
+            2 => RecordType::NS,
+            5 => RecordType::CNAME,
+            6 => RecordType::SOA,
+            12 => RecordType::PTR,
+            15 => RecordType::MX,
+            16 => RecordType::TXT,
+            28 => RecordType::AAAA,
+            _ => RecordType::Unknown(value)
+        }
+    }
+}
+
+impl RecordClass {
+    fn encode(&self) -> u16 {
+        match *self {
+            RecordClass::IN => 1,
+            RecordClass::Unknown(x) => x
+        }
+    }
+
+    fn decode(value: u16) -> RecordClass {
+        match value {
+            1 => RecordClass::IN,
+            _ => RecordClass::Unknown(value)
+        }
+    }
+}

@@ -12,6 +12,24 @@ impl EncPacket {
         }
         Ok(())
     }
+
+    pub fn encode_with_length<F>(&mut self, f: F) -> Result<(), String>
+        where F: FnOnce(&mut EncPacket) -> Result<(), String>
+    {
+        let offset = self.0.len();
+        0u16.dns_encode(self)?;
+
+        f(self)?;
+
+        let delta_length = self.0.len() - offset - 2;
+        if delta_length > 0xffff {
+            Err(String::from("length field overflow"))
+        } else {
+            self.0[offset] = (delta_length >> 8) as u8;
+            self.0[offset + 1] = (delta_length & 0xff) as u8;
+            Ok(())
+        }
+    }
 }
 
 pub trait Encoder {
