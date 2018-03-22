@@ -1,6 +1,8 @@
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use dns_proto::domain::Domain;
+use dns_proto::decoding::{Decoder, DecPacket};
+use dns_proto::encoding::{Encoder, EncPacket};
 
 pub enum RecordType {
     A,
@@ -36,19 +38,41 @@ pub struct SOADetails {
     pub minimum: u32
 }
 
-pub enum Record {
-    ARecord(RecordHeader, Ipv4Addr),
-    AAAARecord(RecordHeader, Ipv6Addr),
-    DomainRecord(RecordHeader, Domain),
-    SOARecord(RecordHeader, SOADetails),
-    Unknown(RecordHeader, Vec<u8>)
+pub enum RecordBody {
+    ARecord(Ipv4Addr),
+    AAAARecord(Ipv6Addr),
+    DomainRecord(Domain),
+    SOARecord(SOADetails),
+    Unknown(Vec<u8>)
 }
 
-// impl Encoder for Record {
-//     fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
-//         // TODO: this.
-//     }
-// }
+pub struct Record {
+    pub header: RecordHeader,
+    pub body: RecordBody
+}
+
+impl Encoder for Record {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
+        self.header.domain.dns_encode(packet)?;
+        self.header.record_type.encode().dns_encode(packet)?;
+        self.header.record_class.encode().dns_encode(packet)?;
+        self.header.ttl.dns_encode(packet)?;
+        packet.encode_with_length(|packet| {
+            match self.body {
+                RecordBody::ARecord(ref addr) => packet.encode_all(addr.octets().to_vec()),
+                RecordBody::AAAARecord(ref addr) => packet.encode_all(addr.octets().to_vec()),
+                RecordBody::DomainRecord(ref name) => name.dns_encode(packet),
+                RecordBody::SOARecord(ref soa) => {
+                    soa.master_name.dns_encode(packet)?;
+                    soa.responsible_name.dns_encode(packet)?;
+                    packet.encode_all(vec![soa.serial, soa.refresh, soa.retry, soa.expire,
+                        soa.minimum])
+                },
+                RecordBody::Unknown(ref data) => packet.encode_all(data.clone())
+            }
+        })
+    }
+}
 
 // impl Decoder for Record {
 //     fn dns_decode(packet: &mut DecPacket) -> Result<Record, String> {
