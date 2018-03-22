@@ -138,7 +138,7 @@ impl ResponseCode {
             ResponseCode::NXRRSet => 8,
             ResponseCode::NotAuth => 9,
             ResponseCode::NotZone => 10,
-            ResponseCode::Unknown(x) => x
+            ResponseCode::Unknown(x) => x as usize
         }
     }
 
