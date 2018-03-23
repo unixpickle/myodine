@@ -60,8 +60,8 @@ pub struct Record {
 impl Encoder for Record {
     fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
         self.header.domain.dns_encode(packet)?;
-        self.header.record_type.encode().dns_encode(packet)?;
-        self.header.record_class.encode().dns_encode(packet)?;
+        self.header.record_type.dns_encode(packet)?;
+        self.header.record_class.dns_encode(packet)?;
         self.header.ttl.dns_encode(packet)?;
         packet.encode_with_length(|packet| {
             match self.body {
@@ -83,8 +83,8 @@ impl Encoder for Record {
 impl Decoder for Record {
     fn dns_decode(packet: &mut DecPacket) -> Result<Record, String> {
         let domain = Decoder::dns_decode(packet)?;
-        let record_type = RecordType::decode(Decoder::dns_decode(packet)?);
-        let record_class = RecordClass::decode(Decoder::dns_decode(packet)?);
+        let record_type = Decoder::dns_decode(packet)?;
+        let record_class = Decoder::dns_decode(packet)?;
         let ttl = Decoder::dns_decode(packet)?;
         Ok(Record{
             header: RecordHeader{
@@ -128,9 +128,9 @@ impl Decoder for Record {
     }
 }
 
-impl RecordType {
-    fn encode(&self) -> u16 {
-        match *self {
+impl Encoder for RecordType {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
+        (match *self {
             RecordType::A => 1,
             RecordType::NS => 2,
             RecordType::CNAME => 5,
@@ -140,11 +140,22 @@ impl RecordType {
             RecordType::TXT => 16,
             RecordType::AAAA => 28,
             RecordType::Unknown(x) => x
-        }
+        } as u16).dns_encode(packet)
     }
+}
 
-    fn decode(value: u16) -> RecordType {
-        match value {
+impl Encoder for RecordClass {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
+        (match *self {
+            RecordClass::IN => 1,
+            RecordClass::Unknown(x) => x
+        } as u16).dns_encode(packet)
+    }
+}
+
+impl Decoder for RecordType {
+    fn dns_decode(packet: &mut DecPacket) -> Result<RecordType, String> {
+        Ok(match u16::dns_decode(packet)? {
             1 => RecordType::A,
             2 => RecordType::NS,
             5 => RecordType::CNAME,
@@ -153,23 +164,16 @@ impl RecordType {
             15 => RecordType::MX,
             16 => RecordType::TXT,
             28 => RecordType::AAAA,
-            _ => RecordType::Unknown(value)
-        }
+            x => RecordType::Unknown(x)
+        })
     }
 }
 
-impl RecordClass {
-    fn encode(&self) -> u16 {
-        match *self {
-            RecordClass::IN => 1,
-            RecordClass::Unknown(x) => x
-        }
-    }
-
-    fn decode(value: u16) -> RecordClass {
-        match value {
+impl Decoder for RecordClass {
+    fn dns_decode(packet: &mut DecPacket) -> Result<RecordClass, String> {
+        Ok(match u16::dns_decode(packet)? {
             1 => RecordClass::IN,
-            _ => RecordClass::Unknown(value)
-        }
+            x => RecordClass::Unknown(x)
+        })
     }
 }
