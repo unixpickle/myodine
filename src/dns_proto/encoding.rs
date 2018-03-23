@@ -4,15 +4,6 @@ use std::mem::size_of;
 pub struct EncPacket(Vec<u8>);
 
 impl EncPacket {
-    pub fn encode_all<T: IntoIterator>(&mut self, x: T) -> Result<(), String>
-        where <T as IntoIterator>::Item: Encoder
-    {
-        for item in x.into_iter() {
-            item.dns_encode(self)?;
-        }
-        Ok(())
-    }
-
     pub fn encode_with_length<F>(&mut self, f: F) -> Result<(), String>
         where F: FnOnce(&mut EncPacket) -> Result<(), String>
     {
@@ -57,6 +48,15 @@ impl Encoder for u32 {
         packet.0.push(((*self >> 16) & 0xff) as u8);
         packet.0.push(((*self >> 8) & 0xff) as u8);
         packet.0.push((*self & 0xff) as u8);
+        Ok(())
+    }
+}
+
+impl<T: Encoder> Encoder for Vec<T> {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
+        for item in self.into_iter() {
+            item.dns_encode(packet)?;
+        }
         Ok(())
     }
 }

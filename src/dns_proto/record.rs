@@ -63,14 +63,14 @@ impl Encoder for Record {
             self.header.record_class, self.header.ttl)?;
         packet.encode_with_length(|packet| {
             match self.body {
-                RecordBody::ARecord(ref addr) => packet.encode_all(addr.octets().to_vec()),
-                RecordBody::AAAARecord(ref addr) => packet.encode_all(addr.octets().to_vec()),
+                RecordBody::ARecord(ref addr) => addr.octets().to_vec().dns_encode(packet),
+                RecordBody::AAAARecord(ref addr) => addr.octets().to_vec().dns_encode(packet),
                 RecordBody::DomainRecord(ref name) => name.dns_encode(packet),
                 RecordBody::SOARecord(ref soa) => {
                     encode_all!(packet, soa.master_name, soa.responsible_name, soa.serial,
                         soa.refresh, soa.retry, soa.expire, soa.minimum)
                 },
-                RecordBody::Unknown(ref data) => packet.encode_all(data.clone())
+                RecordBody::Unknown(ref data) => data.dns_encode(packet)
             }
         })
     }
