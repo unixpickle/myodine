@@ -36,6 +36,27 @@ impl DecPacket {
         }
         Ok(res)
     }
+
+    pub fn decode_all<T: Decoder>(&mut self, num_items: usize) -> Result<Vec<T>, String> {
+        let mut res = Vec::new();
+        for _ in 0..num_items {
+            res.push(T::dns_decode(self)?);
+        }
+        Ok(res)
+    }
+
+    pub fn decode_with_length<F, T>(&mut self, f: F) -> Result<T, String>
+        where F: FnOnce(&mut DecPacket, usize) -> Result<T, String>
+    {
+        let len = u16::dns_decode(self)? as usize;
+        let offset = self.offset;
+        let result = f(self, len)?;
+        if self.offset < len || self.offset - len != offset {
+            Err(String::from("incorrect length field"))
+        } else {
+            Ok(result)
+        }
+    }
 }
 
 pub trait Decoder where Self: Sized {
