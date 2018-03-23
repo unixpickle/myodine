@@ -1,12 +1,52 @@
 use dns_proto::domain::Domain;
-use dns_proto::record::{RecordType, RecordClass};
+use dns_proto::record::{RecordType, RecordClass, Record};
 use dns_proto::encoding::{Encoder, EncPacket};
 use dns_proto::decoding::{Decoder, DecPacket};
+use dns_proto::header::Header;
 
 pub struct Question {
-    domain: Domain,
-    record_type: RecordType,
-    record_class: RecordClass
+    pub domain: Domain,
+    pub record_type: RecordType,
+    pub record_class: RecordClass
+}
+
+pub struct Message {
+    pub header: Header,
+    pub questions: Vec<Question>,
+    pub answers: Vec<Record>,
+    pub authorities: Vec<Record>,
+    pub additional: Vec<Record>
+}
+
+impl Encoder for Message {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
+        if self.questions.len() != self.header.question_count as usize ||
+            self.answers.len() != self.header.answer_count as usize ||
+            self.authorities.len() != self.header.authority_count as usize ||
+            self.additional.len() != self.header.additional_count as usize {
+            Err(String::from("mismatching length in header and vector"))
+        } else {
+            encode_all!(packet, self.header, self.questions, self.answers, self.authorities,
+                self.additional)
+        }
+    }
+}
+
+impl Decoder for Message {
+    fn dns_decode(packet: &mut DecPacket) -> Result<Message, String> {
+        let header = Header::dns_decode(packet)?;
+        let questions = packet.decode_all(header.question_count as usize)?;
+        let answers = packet.decode_all(header.answer_count as usize)?;
+        let authorities = packet.decode_all(header.authority_count as usize)?;
+        let additional = packet.decode_all(header.additional_count as usize)?;
+        Ok(Message{
+            header: header,
+            questions: questions,
+            answers: answers,
+            authorities: authorities,
+            additional: additional
+        })
+    }
 }
 
 impl Encoder for Question {
