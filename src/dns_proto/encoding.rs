@@ -96,3 +96,17 @@ impl BitWriter {
         self.value
     }
 }
+
+macro_rules! encode_all {
+    ( $dest:expr ) => { Ok(()) };
+    ( $dest:expr, $first:expr $(, $rest:expr )* ) => {
+        {
+            let res = $first.dns_encode($dest);
+            if !res.is_ok() {
+                res
+            } else {
+                encode_all!($dest $(,$rest)*)
+            }
+        }
+    }
+}

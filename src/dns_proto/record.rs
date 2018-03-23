@@ -59,20 +59,16 @@ pub struct Record {
 
 impl Encoder for Record {
     fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
-        self.header.domain.dns_encode(packet)?;
-        self.header.record_type.dns_encode(packet)?;
-        self.header.record_class.dns_encode(packet)?;
-        self.header.ttl.dns_encode(packet)?;
+        encode_all!(packet, self.header.domain, self.header.record_type,
+            self.header.record_class, self.header.ttl)?;
         packet.encode_with_length(|packet| {
             match self.body {
                 RecordBody::ARecord(ref addr) => packet.encode_all(addr.octets().to_vec()),
                 RecordBody::AAAARecord(ref addr) => packet.encode_all(addr.octets().to_vec()),
                 RecordBody::DomainRecord(ref name) => name.dns_encode(packet),
                 RecordBody::SOARecord(ref soa) => {
-                    soa.master_name.dns_encode(packet)?;
-                    soa.responsible_name.dns_encode(packet)?;
-                    packet.encode_all(vec![soa.serial, soa.refresh, soa.retry, soa.expire,
-                        soa.minimum])
+                    encode_all!(packet, soa.master_name, soa.responsible_name, soa.serial,
+                        soa.refresh, soa.retry, soa.expire, soa.minimum)
                 },
                 RecordBody::Unknown(ref data) => packet.encode_all(data.clone())
             }

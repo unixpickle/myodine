@@ -59,8 +59,8 @@ impl Encoder for Header {
         assert!(flags.fits::<u16>());
         (flags.value() as u16).dns_encode(packet)?;
 
-        packet.encode_all(vec![self.question_count, self.answer_count, self.authority_count,
-            self.additional_count])
+        encode_all!(packet, self.question_count, self.answer_count, self.authority_count,
+            self.additional_count)
     }
 }
 

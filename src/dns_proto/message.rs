@@ -11,10 +11,7 @@ pub struct Question {
 
 impl Encoder for Question {
     fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
-        self.domain.dns_encode(packet)?;
-        self.record_type.dns_encode(packet)?;
-        self.record_class.dns_encode(packet)?;
-        Ok(())
+        encode_all!(packet, self.domain, self.record_type, self.record_class)
     }
 }
 
