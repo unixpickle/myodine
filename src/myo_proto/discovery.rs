@@ -35,7 +35,7 @@ pub fn domain_hash_result(query: &Message) -> Message {
             record_class: question.record_class,
             ttl: 0
         },
-        body: RecordBody::ARecord(Ipv4Addr::new(hash[0], hash[1], hash[2], hash[3]))
+        body: RecordBody::A(Ipv4Addr::new(hash[0], hash[1], hash[2], hash[3]))
     });
     result.header.answer_count = 1;
     result

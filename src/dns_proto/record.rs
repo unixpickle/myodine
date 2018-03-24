@@ -43,10 +43,10 @@ pub struct SOADetails {
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum RecordBody {
-    ARecord(Ipv4Addr),
-    AAAARecord(Ipv6Addr),
-    DomainRecord(Domain),
-    SOARecord(SOADetails),
+    A(Ipv4Addr),
+    AAAA(Ipv6Addr),
+    Domain(Domain),
+    SOA(SOADetails),
     Unknown(Vec<u8>)
 }
 
@@ -62,10 +62,10 @@ impl Encoder for Record {
             self.header.record_class, self.header.ttl)?;
         packet.encode_with_length(|packet| {
             match self.body {
-                RecordBody::ARecord(ref addr) => addr.octets().to_vec().dns_encode(packet),
-                RecordBody::AAAARecord(ref addr) => addr.octets().to_vec().dns_encode(packet),
-                RecordBody::DomainRecord(ref name) => name.dns_encode(packet),
-                RecordBody::SOARecord(ref soa) => {
+                RecordBody::A(ref addr) => addr.octets().to_vec().dns_encode(packet),
+                RecordBody::AAAA(ref addr) => addr.octets().to_vec().dns_encode(packet),
+                RecordBody::Domain(ref name) => name.dns_encode(packet),
+                RecordBody::SOA(ref soa) => {
                     encode_all!(packet, soa.master_name, soa.responsible_name, soa.serial,
                         soa.refresh, soa.retry, soa.expire, soa.minimum)
                 },
@@ -90,23 +90,23 @@ impl Decoder for Record {
             },
             body: packet.decode_with_length(|packet, len| {
                 Ok(match record_type {
-                    RecordType::A => RecordBody::ARecord(From::from(u32::dns_decode(packet)?)),
+                    RecordType::A => RecordBody::A(From::from(u32::dns_decode(packet)?)),
                     RecordType::AAAA => {
                         let data = packet.read_bytes(16)?;
                         let mut buffer = [0u8; 16];
                         for i in 0..16 {
                             buffer[i] = data[i];
                         }
-                        RecordBody::AAAARecord(From::from(buffer))
+                        RecordBody::AAAA(From::from(buffer))
                     },
                     RecordType::NS | RecordType::CNAME | RecordType::PTR => {
-                        RecordBody::DomainRecord(Domain::dns_decode(packet)?)
+                        RecordBody::Domain(Domain::dns_decode(packet)?)
                     },
                     RecordType::SOA => {
                         let master_name = Decoder::dns_decode(packet)?;
                         let responsible_name = Decoder::dns_decode(packet)?;
                         let nums: Vec<u32> = packet.decode_all(5)?;
-                        RecordBody::SOARecord(SOADetails{
+                        RecordBody::SOA(SOADetails{
                             master_name: master_name,
                             responsible_name: responsible_name,
                             serial: nums[0],

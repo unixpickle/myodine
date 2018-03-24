@@ -134,7 +134,7 @@ mod tests {
         assert_eq!(soa.header.record_class, RecordClass::IN);
         assert_eq!(soa.header.ttl, 599);
         match &soa.body {
-            &RecordBody::SOARecord(ref info) => {
+            &RecordBody::SOA(ref info) => {
                 assert_eq!(info.master_name, "ns1.digimedia.com".parse().unwrap());
                 assert_eq!(info.responsible_name, "dns.digimedia.com".parse().unwrap());
                 assert_eq!([info.serial, info.refresh, info.retry, info.expire, info.minimum],
