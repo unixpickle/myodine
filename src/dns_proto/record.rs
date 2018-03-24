@@ -4,7 +4,7 @@ use dns_proto::domain::Domain;
 use dns_proto::decoding::{Decoder, DecPacket};
 use dns_proto::encoding::{Encoder, EncPacket};
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum RecordType {
     A,
     NS,
@@ -17,13 +17,13 @@ pub enum RecordType {
     Unknown(u16)
 }
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum RecordClass {
     IN,
     Unknown(u16)
 }
 
-#[derive(Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct RecordHeader {
     pub domain: Domain,
     pub record_type: RecordType,
@@ -31,7 +31,7 @@ pub struct RecordHeader {
     pub ttl: u32
 }
 
-#[derive(Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct SOADetails {
     pub master_name: Domain,
     pub responsible_name: Domain,
@@ -42,7 +42,7 @@ pub struct SOADetails {
     pub minimum: u32
 }
 
-#[derive(Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum RecordBody {
     ARecord(Ipv4Addr),
     AAAARecord(Ipv6Addr),
@@ -51,7 +51,7 @@ pub enum RecordBody {
     Unknown(Vec<u8>)
 }
 
-#[derive(Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Record {
     pub header: RecordHeader,
     pub body: RecordBody

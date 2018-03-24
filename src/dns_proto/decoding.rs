@@ -34,6 +34,10 @@ impl DecPacket {
         })
     }
 
+    pub fn remaining(&self) -> usize {
+        self.buffer.len() - self.offset
+    }
+
     pub fn read_bytes(&mut self, num_bytes: usize) -> Result<Vec<u8>, String> {
         let mut res = Vec::new();
         for _ in 0..num_bytes {

@@ -1,6 +1,7 @@
 use dns_proto::decoding::{Decoder, DecPacket, BitReader};
 use dns_proto::encoding::{Encoder, EncPacket, BitWriter};
 
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Opcode {
     Query,
     IQuery,
@@ -10,6 +11,7 @@ pub enum Opcode {
     Unknown(u8)
 }
 
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum ResponseCode {
     NoError,
     FormatError,
@@ -25,6 +27,7 @@ pub enum ResponseCode {
     Unknown(u8)
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Header {
     pub identifier: u16,
     pub is_response: bool,

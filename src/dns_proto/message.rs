@@ -4,12 +4,14 @@ use dns_proto::encoding::{Encoder, EncPacket};
 use dns_proto::decoding::{Decoder, DecPacket};
 use dns_proto::header::Header;
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Question {
     pub domain: Domain,
     pub record_type: RecordType,
     pub record_class: RecordClass
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Message {
     pub header: Header,
     pub questions: Vec<Question>,
