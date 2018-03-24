@@ -1,7 +1,6 @@
+use dns_coding::{Encoder, EncPacket, Decoder, DecPacket};
 use dns_proto::domain::Domain;
 use dns_proto::record::{RecordType, RecordClass, Record};
-use dns_proto::encoding::{Encoder, EncPacket};
-use dns_proto::decoding::{Decoder, DecPacket};
 use dns_proto::header::Header;
 
 #[derive(PartialEq, Clone, Debug)]
@@ -77,8 +76,7 @@ impl Decoder for Question {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dns_proto::decoding::dns_decode;
-    use dns_proto::encoding::dns_encode;
+    use dns_coding::{dns_decode, dns_encode};
     use dns_proto::header::Opcode;
     use dns_proto::record::RecordBody;
 

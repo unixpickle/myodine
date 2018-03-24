@@ -1,5 +1,4 @@
-use dns_proto::decoding::{Decoder, DecPacket, BitReader};
-use dns_proto::encoding::{Encoder, EncPacket, BitWriter};
+use dns_coding::{Decoder, DecPacket, BitReader, Encoder, EncPacket, BitWriter};
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Opcode {

@@ -1,8 +1,7 @@
 use std::fmt::{Display, Error, Formatter};
 use std::str::FromStr;
 
-use dns_proto::decoding::{Decoder, DecPacket};
-use dns_proto::encoding::{Encoder, EncPacket};
+use dns_coding::{Decoder, DecPacket, Encoder, EncPacket};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Domain(Vec<String>);

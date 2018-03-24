@@ -1,8 +1,7 @@
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+use dns_coding::{Decoder, DecPacket, Encoder, EncPacket};
 use dns_proto::domain::Domain;
-use dns_proto::decoding::{Decoder, DecPacket};
-use dns_proto::encoding::{Encoder, EncPacket};
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum RecordType {
