@@ -1,6 +1,12 @@
 use std::iter::IntoIterator;
 use std::mem::size_of;
 
+pub fn dns_encode<T: Encoder>(x: &T) -> Result<Vec<u8>, String> {
+    let mut packet = EncPacket{0: Vec::new()};
+    x.dns_encode(&mut packet)?;
+    Ok(packet.0)
+}
+
 pub struct EncPacket(Vec<u8>);
 
 impl EncPacket {

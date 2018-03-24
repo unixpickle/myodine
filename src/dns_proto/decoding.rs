@@ -1,3 +1,8 @@
+pub fn dns_decode<T: Decoder>(data: Vec<u8>) -> Result<T, String> {
+    let mut dec = DecPacket::new(data);
+    T::dns_decode(&mut dec)
+}
+
 pub struct DecPacket {
     buffer: Vec<u8>,
     offset: usize
