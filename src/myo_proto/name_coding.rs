@@ -7,6 +7,13 @@ pub trait NameCode {
     fn name_decode(&self, root: &Domain, encoded: &Domain) -> Result<(char, Vec<u8>), String>;
 }
 
+pub fn get_name_code(name: &str) -> Option<Box<NameCode>> {
+    match name {
+        "b16" => Some(Box::new(HexNameCode{})),
+        _ => None
+    }
+}
+
 pub struct HexNameCode;
 
 impl NameCode for HexNameCode {
