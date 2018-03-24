@@ -6,6 +6,7 @@ There are many different ways to encode information in DNS packets. These differ
 
 These encodings deal with putting information into domain names. Currently, these are the supported encodings:
 
+ * `b16` - data is encoded as hexadecimal using the characters `0-9a-f`.
  * `b36` - data is encoded in base 36 using the characters `0-9a-z`.
  * `b62` - data is encoded in base 62 using the characters `0-9a-zA-Z`.
 
