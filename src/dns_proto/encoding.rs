@@ -95,7 +95,7 @@ impl BitWriter {
     }
 
     pub fn fits<T>(&self) -> bool {
-        self.bits_used == size_of::<T>()
+        self.bits_used == size_of::<T>() * 8
     }
 
     pub fn value(&self) -> usize {

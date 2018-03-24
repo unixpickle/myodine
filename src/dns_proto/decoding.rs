@@ -117,8 +117,7 @@ impl BitReader {
             None
         } else {
             self.bits_remaining -= 1;
-            let result = (self.value & 1) != 0;
-            self.value >>= 1;
+            let result = (self.value & (1 << self.bits_remaining)) != 0;
             Some(result)
         }
     }
