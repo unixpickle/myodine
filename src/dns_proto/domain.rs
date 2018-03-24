@@ -42,6 +42,26 @@ impl Domain {
     pub fn parts(&self) -> &[String] {
         &self.0
     }
+
+    fn split_first(&self) -> (Vec<u8>, Domain) {
+        let first = &self.0[0];
+        let rest = self.0[1..self.0.len()].to_vec();
+        (first.as_bytes().to_vec(), Domain(rest))
+    }
+
+    fn encode_raw(&self) -> Vec<u8> {
+        let mut raw_data = Vec::new();
+        for part in self.parts() {
+            let bytes = part.as_bytes();
+            assert!(bytes.len() < 64);
+            raw_data.push(bytes.len() as u8);
+            for b in bytes {
+                raw_data.push(*b);
+            }
+        }
+        raw_data.push(0u8);
+        raw_data
+    }
 }
 
 impl FromStr for Domain {
@@ -66,15 +86,27 @@ impl Display for Domain {
 
 impl Encoder for Domain {
     fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
-        for part in self.parts() {
-            let bytes = part.as_bytes();
-            assert!(bytes.len() < 64);
-            (bytes.len() as u8).dns_encode(packet)?;
-            for b in bytes {
-                b.dns_encode(packet)?;
+        if self.0.len() == 0 {
+            return 0u8.dns_encode(packet);
+        }
+
+        let raw_data = self.encode_raw();
+        for i in 0..(packet.data().len() - raw_data.len()) {
+            if packet.data()[i..(i + raw_data.len())] == raw_data[0..raw_data.len()] {
+                if i >= 0x3f00 {
+                    return Err(String::from("pointer address too high"));
+                }
+                let ptr_high = ((i & 0x3f00) >> 8) as u8;
+                let ptr_low = (i & 0xff) as u8;
+                (0xc0u8 | ptr_high).dns_encode(packet)?;
+                return ptr_low.dns_encode(packet);
             }
         }
-        0u8.dns_encode(packet)
+
+        let (first, rest) = self.split_first();
+        (first.len() as u8).dns_encode(packet)?;
+        first.dns_encode(packet)?;
+        rest.dns_encode(packet)
     }
 }
 
@@ -161,5 +193,25 @@ mod tests {
             let mut packet = DecPacket::new(data);
             assert!(Domain::dns_decode(&mut packet).is_err());
         }
+    }
+
+    #[test]
+    fn encode_pointers() {
+        let mut enc_packet = EncPacket::new();
+        for _ in 0..300 {
+            13u8.dns_encode(&mut enc_packet).unwrap();
+        }
+        encode_all!(&mut enc_packet, Domain::from_str("foo.apple.com").unwrap(),
+            Domain::from_str("bar.baz.apple.com").unwrap()).unwrap();
+        assert_eq!(enc_packet.data().len(), 325);
+
+        let mut dec_packet = DecPacket::new(enc_packet.data().clone());
+        for _ in 0..300 {
+            u8::dns_decode(&mut dec_packet).unwrap();
+        }
+        assert_eq!(Domain::dns_decode(&mut dec_packet).unwrap(), "foo.apple.com".parse().unwrap());
+        assert_eq!(Domain::dns_decode(&mut dec_packet).unwrap(),
+            "bar.baz.apple.com".parse().unwrap());
+        assert!(u8::dns_decode(&mut dec_packet).is_err());
     }
 }

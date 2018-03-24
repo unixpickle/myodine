@@ -2,7 +2,7 @@ use std::iter::IntoIterator;
 use std::mem::size_of;
 
 pub fn dns_encode<T: Encoder>(x: &T) -> Result<Vec<u8>, String> {
-    let mut packet = EncPacket{0: Vec::new()};
+    let mut packet = EncPacket::new();
     x.dns_encode(&mut packet)?;
     Ok(packet.0)
 }
@@ -10,6 +10,10 @@ pub fn dns_encode<T: Encoder>(x: &T) -> Result<Vec<u8>, String> {
 pub struct EncPacket(Vec<u8>);
 
 impl EncPacket {
+    pub fn new() -> EncPacket {
+        EncPacket(Vec::new())
+    }
+
     pub fn encode_with_length<F>(&mut self, f: F) -> Result<(), String>
         where F: FnOnce(&mut EncPacket) -> Result<(), String>
     {
@@ -26,6 +30,10 @@ impl EncPacket {
             self.0[offset + 1] = (delta_length & 0xff) as u8;
             Ok(())
         }
+    }
+
+    pub fn data(&self) -> &Vec<u8> {
+        &self.0
     }
 }
 
