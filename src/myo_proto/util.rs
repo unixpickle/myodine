@@ -2,6 +2,15 @@ use std::fmt::Write;
 
 use dns_proto::domain::Domain;
 
+extern crate sha1;
+use self::sha1::Sha1;
+
+pub fn domain_hash(domain: &Domain) -> [u8; 20] {
+    let mut sh = Sha1::new();
+    sh.update(format!("{}", domain).as_bytes());
+    sh.digest().bytes()
+}
+
 pub fn domain_ends_with(domain: &Domain, suffix: &Domain) -> bool {
     if domain.parts().len() < suffix.parts().len() {
         return false;

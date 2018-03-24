@@ -6,3 +6,6 @@ authors = ["Alex Nichol <unixpickle@gmail.com>"]
 [lib]
 name = "myodine"
 path = "src/mod.rs"
+
+[dependencies]
+sha1 = "0.6"
