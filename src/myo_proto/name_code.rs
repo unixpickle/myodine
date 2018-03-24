@@ -2,6 +2,8 @@ use std::fmt::Write;
 
 use dns_proto::domain::Domain;
 
+use super::util::domain_ends_with;
+
 pub trait NameCode {
     fn name_encode(&self, root: &Domain, api_flag: char, data: &[u8]) -> Result<Domain, String>;
     fn name_decode(&self, root: &Domain, encoded: &Domain) -> Result<(char, Vec<u8>), String>;
@@ -45,10 +47,8 @@ impl NameCode for HexNameCode {
             return Err(String::from("no room for encoded data"));
         }
         let num_data_parts = encoded.parts().len() - root.parts().len();
-        for i in 0..root.parts().len() {
-            if !domain_part_equal(&root.parts()[i], &encoded.parts()[i + num_data_parts]) {
-                return Err(String::from("incorrect root domain"));
-            }
+        if !domain_ends_with(encoded, root) {
+            return Err(String::from("incorrect root domain"));
         }
         let api_flag = encoded.parts()[0].as_bytes()[0] as char;
         let mut data = Vec::new();
@@ -71,22 +71,6 @@ impl NameCode for HexNameCode {
         }
         Ok((api_flag, data))
     }
-}
-
-fn domain_part_equal(x: &str, y: &str) -> bool {
-    return domain_part_lowercase(x) == domain_part_lowercase(y);
-}
-
-fn domain_part_lowercase(x: &str) -> String {
-    let mut res = String::new();
-    for ch in x.as_bytes() {
-        if *ch >= ('A' as u8) && *ch <= ('Z' as u8) {
-            res.write_char(((*ch - ('A' as u8)) + ('a' as u8)) as char)
-        } else {
-            res.write_char(*ch as char)
-        }.unwrap();
-    }
-    res
 }
 
 #[cfg(test)]
