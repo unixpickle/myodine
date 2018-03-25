@@ -4,21 +4,25 @@ use self::rand::distributions::{Range, IndependentSample};
 
 use dns_coding::{DecPacket, Decoder, EncPacket, Encoder};
 
+#[derive(Clone, Debug)]
 pub struct Ack {
     pub window_start: u32,
     pub window_mask: Vec<bool>
 }
 
+#[derive(Clone, Debug)]
 pub struct Chunk {
     pub seq: u32,
     pub data: Vec<u8>
 }
 
+#[derive(Clone, Debug)]
 pub struct Packet {
     ack: Ack,
     chunk: Option<Chunk>
 }
 
+#[derive(Clone, Debug)]
 pub struct ClientPacket {
     session_id: u16,
     packet: Packet

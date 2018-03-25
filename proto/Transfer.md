@@ -35,7 +35,7 @@ Every packet sent over WWR has this overall structure:
    * Sequence ID
    * Data
 
-Whenever a sender receives an acknowledgement, it can update its state accordingly. It may be able to expand its sent sequence, or it may simply note that certain chunks in the sender window have been acknowledged. Acknowledgements should be dealt with as an OR operation. Once a chunk has been acknowledged, it cannot be un-acknowledged. This deals with the fact that acknowledgements may be received out of order.
+Whenever a sender receives an acknowledgement, it can update its state accordingly. It may be able to expand its sent sequence, or it may simply note that certain chunks in the sender window have been acknowledged. Once a chunk has been acknowledged, it cannot be un-acknowledged. This deals with the fact that acknowledgements may be received out of order (in which case the stale ACK has no effect).
 
 ## Motivation
 
