@@ -90,15 +90,17 @@ impl Encoder for Domain {
         }
 
         let raw_data = self.encode_raw();
-        for i in 0..(packet.data().len() - raw_data.len()) {
-            if packet.data()[i..(i + raw_data.len())] == raw_data[0..raw_data.len()] {
-                if i >= 0x3f00 {
-                    return Err(String::from("pointer address too high"));
+        if raw_data.len() <= packet.data().len() {
+            for i in 0..(packet.data().len() - raw_data.len()) {
+                if packet.data()[i..(i + raw_data.len())] == raw_data[0..raw_data.len()] {
+                    if i >= 0x3f00 {
+                        return Err(String::from("pointer address too high"));
+                    }
+                    let ptr_high = ((i & 0x3f00) >> 8) as u8;
+                    let ptr_low = (i & 0xff) as u8;
+                    (0xc0u8 | ptr_high).dns_encode(packet)?;
+                    return ptr_low.dns_encode(packet);
                 }
-                let ptr_high = ((i & 0x3f00) >> 8) as u8;
-                let ptr_low = (i & 0xff) as u8;
-                (0xc0u8 | ptr_high).dns_encode(packet)?;
-                return ptr_low.dns_encode(packet);
             }
         }
 
@@ -212,5 +214,12 @@ mod tests {
         assert_eq!(Domain::dns_decode(&mut dec_packet).unwrap(),
             "bar.baz.apple.com".parse().unwrap());
         assert!(u8::dns_decode(&mut dec_packet).is_err());
+    }
+
+    #[test]
+    fn encode_pointers_start() {
+        let mut enc_packet = EncPacket::new();
+        Domain::from_str("foo.apple.com").unwrap().dns_encode(&mut enc_packet).unwrap();
+        assert_eq!(enc_packet.data().len(), 15);
     }
 }
