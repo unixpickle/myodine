@@ -66,6 +66,15 @@ impl Encoder for u32 {
     }
 }
 
+impl Encoder for u64 {
+    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
+        for i in 0..8 {
+            packet.0.push((*self >> (56 - i * 8)) as u8);
+        }
+        Ok(())
+    }
+}
+
 impl<T: Encoder> Encoder for Vec<T> {
     fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
         for item in self.into_iter() {

@@ -69,11 +69,12 @@ The binary data for `t` queries is structured as follows:
 
 The binary data for `p` queries is structured as follows:
 
+ * `session_id: u16` - the established session ID.
  * `window_start: u32` - same as for `t` queries.
  * `window_mask: <variable>` - same as for `t` queries.
  * `random: u64` - a random value; prevents caching. This way, if the server has no data to receive and the client has no data to send, the client can continually poll for data and get uncached responses.
 
-The body of responses are structured the same way as those for `t` queries, excluding the `session_id` field.
+The body of responses are structured the same way as those for `t` queries, excluding the `session_id` field. If there is no data to be sent in the response, then the `chunk_seq` and `chunk_data` fields are omitted.
 
 ## Parallelism
 

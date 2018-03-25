@@ -99,6 +99,14 @@ impl Decoder for u32 {
     }
 }
 
+impl Decoder for u64 {
+    fn dns_decode(packet: &mut DecPacket) -> Result<u64, String> {
+        let big_word = u32::dns_decode(packet)?;
+        let small_word = u32::dns_decode(packet)?;
+        Ok(((big_word as u64) << 32) | (small_word as u64))
+    }
+}
+
 pub struct BitReader {
     value: usize,
     bits_remaining: usize
