@@ -11,6 +11,10 @@ path = "src/mod.rs"
 name = "myodine-server"
 path = "src/server/main.rs"
 
+[[bin]]
+name = "myodine-client"
+path = "src/client/main.rs"
+
 [dependencies]
 sha1 = "0.6"
 clap = "2.31"
