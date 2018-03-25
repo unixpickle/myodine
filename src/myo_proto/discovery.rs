@@ -1,12 +1,14 @@
-use std::iter::FromIterator;
 use std::net::Ipv4Addr;
 
 use dns_proto::domain::Domain;
 use dns_proto::message::Message;
 use dns_proto::record::{Record, RecordHeader, RecordType, RecordBody};
 
-use myo_proto::util::{domain_hash, domain_part_lowercase};
+use myo_proto::util::is_api_query;
 use myo_proto::record_code::get_record_code;
+
+extern crate sha1;
+use self::sha1::Sha1;
 
 pub fn is_domain_hash_query(query: &Message) -> bool {
     is_discovery_query(query) && query.questions[0].record_type == RecordType::A
@@ -30,7 +32,7 @@ pub fn domain_hash_response(query: &Message) -> Result<Message, String> {
             record_class: question.record_class,
             ttl: 0
         },
-        body: RecordBody::A(Ipv4Addr::new(hash[0], hash[1], hash[2], hash[3]))
+        body: RecordBody::A(hash)
     });
     result.header.answer_count = 1;
     Ok(result)
@@ -57,6 +59,13 @@ pub fn download_gen_response(query: &Message) -> Result<Message, String> {
     });
     result.header.answer_count = 1;
     Ok(result)
+}
+
+pub fn domain_hash(domain: &Domain) -> Ipv4Addr {
+    let mut sh = Sha1::new();
+    sh.update(format!("{}", domain).as_bytes());
+    let data = sh.digest().bytes();
+    Ipv4Addr::new(data[0], data[1], data[2], data[3])
 }
 
 pub struct DownloadGenQuery {
@@ -128,17 +137,7 @@ impl DownloadGenQuery {
 }
 
 fn is_discovery_query(query: &Message) -> bool {
-    if !query.header.is_response &&
-        query.questions.len() == 1 &&
-        query.answers.len() == 0 &&
-        query.authorities.len() == 0 &&
-        query.additional.len() == 0 &&
-        query.questions[0].domain.parts().len() > 0 {
-        let first = &query.questions[0].domain.parts()[0];
-        domain_part_lowercase(first).chars().next().unwrap() == 'f'
-    } else {
-        false
-    }
+    is_api_query(query, 'f')
 }
 
 #[cfg(test)]

@@ -11,7 +11,7 @@ Let `HOSTNAME` be the root domain name of the myodine server.
 The establishment request has a domain name of the form:
 
 ```
-e<response-encoding>.<mtu>.<name-encoding>.<send-window>.<recv-window>.<proof>.<host>.<port>.HOSTNAME
+e<response-encoding>.<mtu>.<name-encoding>.<send-window>.<recv-window>.<proof>.<port>.<host>.HOSTNAME
 ```
 
 Here is a breakdown of each field:
@@ -31,7 +31,7 @@ The response to an establishment request contains raw data in the requested enco
 
  * `status: u8` - 0 for a successful connection.
  * `session_id: u16` - a value that uniquely identifies this session.
- * `seq_num: u64` - a random value in the range `[0, 2^64)`. This is used as the initial sequence number for both the incoming and outgoing streams.
+ * `seq_num: u32` - a random value in the range `[0, 2^32)`. This is used as the initial sequence number for both the incoming and outgoing streams.
 
 For a failed request, here are the fields:
 

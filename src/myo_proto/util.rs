@@ -1,14 +1,22 @@
 use std::fmt::Write;
 
 use dns_proto::domain::Domain;
+use dns_proto::message::Message;
 
-extern crate sha1;
-use self::sha1::Sha1;
-
-pub fn domain_hash(domain: &Domain) -> [u8; 20] {
-    let mut sh = Sha1::new();
-    sh.update(format!("{}", domain).as_bytes());
-    sh.digest().bytes()
+pub fn is_api_query(m: &Message, prefix_char: char) -> bool {
+    let is_query = !m.header.is_response &&
+        m.questions.len() == 1 &&
+        m.answers.len() == 0 &&
+        m.authorities.len() == 0 &&
+        m.additional.len() == 0;
+    if is_query {
+        let domain = &m.questions[0].domain;
+        if domain.parts().len() > 0 {
+            let first = &domain.parts()[0];
+            return domain_part_lowercase(first).chars().next().unwrap() == prefix_char;
+        }
+    }
+    return false;
 }
 
 pub fn domain_ends_with(domain: &Domain, suffix: &Domain) -> bool {
