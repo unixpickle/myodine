@@ -33,7 +33,7 @@ Data is generated using three seed values: a coefficient, a modulus, and a bias.
 A request is of the following form:
 
 ```
-`f<encoding>.<len>.n<bias>.n<coefficient>.n<modulus>.<PADDING>.HOSTNAME`
+`f<encoding>.<len>.<bias>.<coefficient>.<modulus>.<PADDING>.HOSTNAME`
 ```
 
 Where the fields mean:

@@ -73,10 +73,10 @@ impl DownloadGenQuery {
             return Err(String::from("not enough domain parts"));
         }
         let encoding = domain.parts()[0].chars().skip(1).collect();
-        let len = String::from_iter(domain.parts()[1].chars().skip(1)).parse();
-        let bias = String::from_iter(domain.parts()[2].chars().skip(1)).parse();
-        let coefficient = String::from_iter(domain.parts()[3].chars().skip(1)).parse();
-        let modulus = String::from_iter(domain.parts()[4].chars().skip(1)).parse();
+        let len = domain.parts()[1].parse();
+        let bias = domain.parts()[2].parse();
+        let coefficient = domain.parts()[3].parse();
+        let modulus = domain.parts()[4].parse();
         if len.is_err() || bias.is_err() || coefficient.is_err() || modulus.is_err() {
             Err(String::from("invalid number in domain"))
         } else {
