@@ -100,6 +100,31 @@ impl DownloadGenQuery {
         }
         result
     }
+
+    pub fn to_domain(&self, host: &Domain, pad_to_len: usize) -> Result<Domain, String> {
+        let mut parts = Vec::new();
+        parts.push(format!("f{}", self.encoding));
+        parts.push(format!("{}", self.len));
+        for x in &[self.bias, self.coefficient, self.modulus] {
+            parts.push(format!("{}", *x));
+        }
+        let mut total_bytes = host.parts().iter().chain((&parts).into_iter())
+            .map(|x| x.len() + 1).sum::<usize>() + 1;
+        if total_bytes % 2 != pad_to_len % 2 {
+            parts.push(String::from("xx"));
+            total_bytes += 3;
+        }
+        while total_bytes < pad_to_len {
+            parts.push(String::from("x"));
+            total_bytes += 2;
+        }
+        if total_bytes > pad_to_len {
+            Err(String::from("target length is too short"))
+        } else {
+            parts.extend(host.parts().to_vec());
+            Domain::from_parts(parts)
+        }
+    }
 }
 
 fn is_discovery_query(query: &Message) -> bool {
@@ -113,5 +138,35 @@ fn is_discovery_query(query: &Message) -> bool {
         domain_part_lowercase(first).chars().next().unwrap() == 'f'
     } else {
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gen_query_to_domain() {
+        let query = DownloadGenQuery{
+            encoding: String::from("raw"),
+            len: 100,
+            bias: 123,
+            coefficient: 13,
+            modulus: 178
+        };
+        assert_eq!(query.to_domain(&("fo.com".parse().unwrap()), 28).unwrap(),
+            "fraw.100.123.13.178.fo.com".parse().unwrap());
+        assert_eq!(query.to_domain(&("fo.com".parse().unwrap()), 30).unwrap(),
+            "fraw.100.123.13.178.x.fo.com".parse().unwrap());
+        assert_eq!(query.to_domain(&("fo.com".parse().unwrap()), 31).unwrap(),
+            "fraw.100.123.13.178.xx.fo.com".parse().unwrap());
+        assert_eq!(query.to_domain(&("fo.com".parse().unwrap()), 33).unwrap(),
+            "fraw.100.123.13.178.xx.x.fo.com".parse().unwrap());
+        assert_eq!(query.to_domain(&("fo.bar.com".parse().unwrap()), 32).unwrap(),
+            "fraw.100.123.13.178.fo.bar.com".parse().unwrap());
+        assert_eq!(query.to_domain(&("fo.bar.com".parse().unwrap()), 34).unwrap(),
+            "fraw.100.123.13.178.x.fo.bar.com".parse().unwrap());
+        assert!(query.to_domain(&("fo.bar.com".parse().unwrap()), 10).is_err());
+        assert!(query.to_domain(&("fo.bar.com".parse().unwrap()), 33).is_err());
     }
 }
