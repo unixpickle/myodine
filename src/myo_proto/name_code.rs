@@ -4,6 +4,13 @@ use dns_proto::domain::Domain;
 
 use super::util::domain_ends_with;
 
+pub fn get_name_code(name: &str) -> Option<Box<NameCode>> {
+    match name {
+        "b16" => Some(Box::new(HexNameCode{})),
+        _ => None
+    }
+}
+
 pub trait NameCode {
     fn encode_parts(&self, api_flag: char, data: &[u8]) -> Result<Vec<String>, String>;
     fn decode_parts(&self, parts: &[String]) -> Result<(char, Vec<u8>), String>;
@@ -25,13 +32,6 @@ pub trait NameCode {
             let all_parts = name.parts().to_vec();
             self.decode_parts(&all_parts[0..(name.parts().len() - host.parts().len())])
         }
-    }
-}
-
-pub fn get_name_code(name: &str) -> Option<Box<NameCode>> {
-    match name {
-        "b16" => Some(Box::new(HexNameCode{})),
-        _ => None
     }
 }
 
