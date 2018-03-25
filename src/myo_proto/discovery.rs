@@ -13,7 +13,7 @@ pub fn is_domain_hash_query(query: &Message) -> bool {
 }
 
 pub fn is_download_gen_query(query: &Message) -> bool {
-    is_discovery_query(query) && query.questions[0].record_type != RecordType::TXT
+    is_discovery_query(query) && query.questions[0].record_type == RecordType::TXT
 }
 
 pub fn domain_hash_response(query: &Message) -> Result<Message, String> {
@@ -102,7 +102,7 @@ impl DownloadGenQuery {
 }
 
 fn is_discovery_query(query: &Message) -> bool {
-    if query.header.is_response &&
+    if !query.header.is_response &&
         query.questions.len() == 1 &&
         query.answers.len() == 0 &&
         query.authorities.len() == 0 &&
