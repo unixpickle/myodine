@@ -7,5 +7,10 @@ authors = ["Alex Nichol <unixpickle@gmail.com>"]
 name = "myodine"
 path = "src/mod.rs"
 
+[[bin]]
+name = "myodine-server"
+path = "src/server/main.rs"
+
 [dependencies]
 sha1 = "0.6"
+clap = "2.31"
