@@ -77,7 +77,8 @@ impl DownloadGenQuery {
         let bias = domain.parts()[2].parse();
         let coefficient = domain.parts()[3].parse();
         let modulus = domain.parts()[4].parse();
-        if len.is_err() || bias.is_err() || coefficient.is_err() || modulus.is_err() {
+        if len.is_err() || bias.is_err() || coefficient.is_err() || modulus.is_err() ||
+            *modulus.as_ref().unwrap() < 2 {
             Err(String::from("invalid number in domain"))
         } else {
             Ok(DownloadGenQuery{
