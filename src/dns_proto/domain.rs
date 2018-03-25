@@ -19,11 +19,8 @@ impl Domain {
             }
             total_len += label.len() + 1usize;
             let chars: Vec<char> = label.chars().collect();
-            if !in_char_range('a', 'z', chars[0]) && !in_char_range('A', 'Z', chars[0]) {
-                return Err(format!("domain label must start with a-zA-Z"));
-            }
-            if chars[chars.len() - 1] == '-' {
-                return Err(format!("domain label may not end in -"));
+            if chars[chars.len() - 1] == '-'  || chars[0] == '-' {
+                return Err(format!("domain label may not end or start with -"));
             }
             for b in chars {
                 if !in_char_range('a', 'z', b) && !in_char_range('A', 'Z', b) &&
@@ -67,7 +64,7 @@ impl FromStr for Domain {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Domain, String> {
-        Domain::from_parts(s.split(".").map(|x| String::from(x)).collect())
+        Domain::from_parts(s.split(".").map(String::from).collect())
     }
 }
 
@@ -146,18 +143,19 @@ fn in_char_range(start: char, end: char, ch: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::iter::FromIterator;
 
     #[test]
     fn successful_parse() {
-        let domain: Domain = "zoo-1bar.Aol9.AOE".parse().unwrap();
-        assert_eq!(vec![String::from("zoo-1bar"), String::from("Aol9"), String::from("AOE")],
-            domain.0);
+        let domain: Domain = "zoo-1bar.Aol9.123.AOE".parse().unwrap();
+        assert_eq!(domain.0,
+            Vec::from_iter(["zoo-1bar", "Aol9", "123", "AOE"].iter().map(|x| String::from(*x))));
     }
 
     #[test]
     fn unsuccessful_parse() {
-        let strs = vec![String::from("zoo-.google.com"), String::from("9foo.google.com"),
-            "a".repeat(64), format!("{}.com", "aoeu.".repeat(50))];
+        let strs = vec![String::from("zoo-.google.com"), String::from("-foo.google.com"),
+            "a".repeat(64), format!("{}.com", "aoeu.".repeat(50)), String::from("foo..com")];
         for domain in strs {
             assert!(Domain::from_str(&domain).is_err());
         }
