@@ -57,11 +57,16 @@ This section describes how WWR can be implemented in practice over DNS.
 
 ## Protocol
 
-Let `HOSTNAME` be the root domain name of the myodine server. All data transfer queries are for domains matching the regular expression `(t|p).*\.HOSTNAME`, where `t` stands for "transmission" and `p` stands for "poll". The variable contents of the domain name is used to encode binary data.
+Let `HOSTNAME` be the root domain name of the myodine server. All data transfer queries are for domains of the form:
+
+```
+(t|p)<session-id>.DATA.HOSTNAME
+```
+
+Here `t` stands for "transmission" and `p` stands for "poll". The `<session-id>` field is a decimal-encoded number. The `DATA` labels are used to encode binary data.
 
 The binary data for `t` queries is structured as follows:
 
- * `session_id: u16` - the established session ID.
  * `window_start: u32` - the ID of the first chunk after the received sequence.
  * `window_mask: <variable>` - a bitmask indicating which window chunks have been received. Contains at least `window_size - 1` bits. Does not include the first chunk, since the window start would be incremented if the first chunk of the window had been received.
  * `chunk_seq: u32` - the sent chunk's sequence number.
@@ -69,12 +74,11 @@ The binary data for `t` queries is structured as follows:
 
 The binary data for `p` queries is structured as follows:
 
- * `session_id: u16` - the established session ID.
  * `window_start: u32` - same as for `t` queries.
  * `window_mask: <variable>` - same as for `t` queries.
  * `random: u64` - a random value; prevents caching. This way, if the server has no data to receive and the client has no data to send, the client can continually poll for data and get uncached responses.
 
-The body of responses are structured the same way as those for `t` queries, excluding the `session_id` field. If there is no data to be sent in the response, then the `chunk_seq` and `chunk_data` fields are omitted.
+The body of responses are structured the same way as those for `t` queries, unless there is no data. If there is no data to be sent in the response, then the `chunk_seq` and `chunk_data` fields are omitted.
 
 ## Parallelism
 
