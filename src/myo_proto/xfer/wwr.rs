@@ -118,7 +118,7 @@ impl WwrState {
     }
 
     fn remove_out_seq(&mut self, seq: u32) {
-        for i in 0..self.out_pending.len() {
+        for i in (0..self.out_pending.len()).into_iter().rev() {
             if self.out_pending[i].seq == seq {
                 self.out_pending.remove(i);
                 if self.out_round_robin > i {
