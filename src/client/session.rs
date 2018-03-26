@@ -4,7 +4,7 @@ use std::net::TcpStream;
 use std::process::exit;
 use std::sync::mpsc::{Receiver, channel};
 
-use myodine::conn::TcpChunker;
+use myodine::conn::{Highway, Event, TcpChunker};
 use myodine::dns_coding::dns_decode;
 use myodine::dns_proto::message::Message;
 use myodine::dns_proto::record::RecordType;
@@ -15,13 +15,11 @@ use myodine::myo_proto::xfer::{WwrState, Packet};
 
 use flags::Flags;
 use establish::Establishment;
-use events::Event;
-use requester::Requester;
 
 pub struct Session {
     name_code: Box<NameCode>,
     record_code: Box<RecordCode>,
-    requester: Requester,
+    highway: Highway,
     state: WwrState,
     conn: TcpChunker,
     events: Option<Receiver<Event>>,
@@ -31,17 +29,16 @@ pub struct Session {
 impl Session {
     pub fn new(flags: &Flags, conn: TcpStream, info: Establishment) -> io::Result<Session>
     {
-        let (sender, receiver) = channel();
-        let requester = Requester::open(&flags.addr, flags.concurrency, sender);
+        let (highway, events) = Highway::open(&flags.addr, flags.concurrency);
         let conn = TcpChunker::new(conn, info.client_mtu as usize, info.client_window as usize,
                 info.server_window as usize)?;
         Ok(Session{
             name_code: get_name_code(&info.name_code).unwrap(),
             record_code: get_record_code(info.record_type, &info.record_code).unwrap(),
-            requester: requester,
+            highway: highway,
             state: WwrState::new(info.server_window, info.client_window, info.seq_start),
             conn: conn,
-            events: Some(receiver),
+            events: Some(events),
             info: info
         })
     }
@@ -49,16 +46,23 @@ impl Session {
     pub fn run(&mut self) {
         for event in replace(&mut self.events, None).unwrap() {
             match event {
-                Event::Response(idx, msg) => {
+                Event::Response(lane, msg) => {
                     self.handle_message(msg);
-                    self.populate_socket(idx);
+                    self.populate_lane(lane);
                 },
-                Event::ReadTimeout(idx) => {
-                    self.populate_socket(idx);
+                Event::Timeout(lane) => {
+                    self.populate_lane(lane);
                 },
-                Event::Error(msg) => {
-                    eprintln!("fatal error: {}", msg);
-                    exit(1);
+                Event::SendError(lane, msg) => {
+                    eprintln!("lane {}: error sending message: {}", lane, msg);
+                },
+                Event::ConnectError(lane, err) => {
+                    eprintln!("lane {}: error connecting: {}", lane, err);
+                    return;
+                },
+                Event::SocketError(lane, err) => {
+                    eprintln!("lane {}: error on socket: {}", lane, err);
+                    return;
                 }
             }
         }
@@ -79,7 +83,7 @@ impl Session {
         // TODO: reuse the code from server::session::Session::handle_packet.
     }
 
-    fn populate_socket(&mut self, idx: usize) {
+    fn populate_lane(&mut self, lane: usize) {
         // TODO: squeeze as much data as possible from self.conn.
         // TODO: pull a chunk out of data out of self.state.
     }

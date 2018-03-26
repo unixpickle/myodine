@@ -4,8 +4,6 @@ extern crate myodine;
 mod flags;
 mod discovery;
 mod establish;
-mod events;
-mod requester;
 mod session;
 
 use std::net::{TcpListener, TcpStream};
