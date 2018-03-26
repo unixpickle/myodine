@@ -8,7 +8,7 @@ use std::thread::spawn;
 pub struct TcpChunker {
     stream: TcpStream,
     incoming: Receiver<Vec<u8>>,
-    outgoing: SyncSender<Vec<u8>>,
+    outgoing: Option<SyncSender<Vec<u8>>>,
     buffer_chunk: Option<Vec<u8>>
 }
 
@@ -29,12 +29,15 @@ impl TcpChunker {
         Ok(TcpChunker{
             stream: stream,
             incoming: in_receiver,
-            outgoing: out_sender,
+            outgoing: Some(out_sender),
             buffer_chunk: None
         })
     }
 
     pub fn can_send(&mut self) -> bool {
+        if self.outgoing.is_none() {
+            return false;
+        }
         let old_chunk = replace(&mut self.buffer_chunk, None);
         if let Some(chunk) = old_chunk {
             self.send(chunk);
@@ -45,10 +48,21 @@ impl TcpChunker {
     }
 
     pub fn send(&mut self, chunk: Vec<u8>) {
+        assert!(self.outgoing.is_some());
         assert!(self.buffer_chunk.is_none());
-        self.buffer_chunk = match self.outgoing.try_send(chunk) {
+        self.buffer_chunk = match self.outgoing.as_ref().unwrap().try_send(chunk) {
             Ok(_) => None,
             Err(TrySendError::Full(x)) | Err(TrySendError::Disconnected(x)) => Some(x)
+        }
+    }
+
+    pub fn send_finished(&mut self) {
+        assert!(self.outgoing.is_some());
+        if let Some(data) = replace(&mut self.buffer_chunk, None) {
+            let ch = replace(&mut self.outgoing, None);
+            spawn(|| {
+                ch.unwrap().send(data).ok();
+            });
         }
     }
 
@@ -62,6 +76,7 @@ impl TcpChunker {
                 return;
             }
         }
+        stream.shutdown(Shutdown::Write).ok();
     }
 
     fn read_loop(channel: SyncSender<Vec<u8>>, mut stream: TcpStream, chunk_size: usize) {
