@@ -33,7 +33,7 @@ Every packet sent over WWR has this overall structure:
    * Window mask - a bitmask indicating which chunks in the current window have been seen. containing  bits, where 1 indicates that the chunk in the window has been received. The first bit will never be 1, since then the window start would simply increase.
  * Chunk - a chunk to be sent over the stream. This is optional, since no data may be pending.
    * Sequence ID
-   * Data
+   * Data - the chunk data, **or empty to signal EOF**.
 
 Whenever a sender receives an acknowledgement, it can update its state accordingly. It may be able to expand its sent sequence, or it may simply note that certain chunks in the sender window have been acknowledged. Once a chunk has been acknowledged, it cannot be un-acknowledged. This deals with the fact that acknowledgements may be received out of order (in which case the stale ACK has no effect).
 
@@ -65,7 +65,7 @@ The binary data for `t` queries is structured as follows:
  * `window_start: u32` - the ID of the first chunk after the received sequence.
  * `window_mask: <variable>` - a bitmask indicating which window chunks have been received. Contains at least `window_size - 1` bits. Does not include the first chunk, since the window start would be incremented if the first chunk of the window had been received.
  * `chunk_seq: u32` - the sent chunk's sequence number.
- * `chunk_data: <variable>` - the sent chunk's contents.
+ * `chunk_data: <variable>` - the sent chunk's contents. An empty chunk signals EOF.
 
 The binary data for `p` queries is structured as follows:
 

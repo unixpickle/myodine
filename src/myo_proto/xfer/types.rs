@@ -18,14 +18,14 @@ pub struct Chunk {
 
 #[derive(Clone, Debug)]
 pub struct Packet {
-    ack: Ack,
-    chunk: Option<Chunk>
+    pub ack: Ack,
+    pub chunk: Option<Chunk>
 }
 
 #[derive(Clone, Debug)]
 pub struct ClientPacket {
-    session_id: u16,
-    packet: Packet
+    pub session_id: u16,
+    pub packet: Packet
 }
 
 impl Ack {

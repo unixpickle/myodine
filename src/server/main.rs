@@ -10,6 +10,9 @@ use myodine::dns_proto::header::ResponseCode;
 use myodine::dns_proto::message::Message;
 use myodine::myo_proto::discovery;
 
+mod session;
+use session::Session;
+
 fn main() {
     let matches = App::new("myodine-server")
         .arg(Arg::with_name("addr")

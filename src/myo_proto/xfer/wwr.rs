@@ -60,8 +60,8 @@ impl WwrState {
         (self.out_win_size as usize) - (win_used as usize)
     }
 
-    pub fn push_send_buffer(&mut self, mut chunk: Chunk) {
-        chunk.seq = self.out_next_seq;
+    pub fn push_send_buffer(&mut self, data: Vec<u8>) {
+        let chunk = Chunk{seq: self.out_next_seq, data: data};
         self.out_next_seq = (Wrapping(self.out_next_seq) + Wrapping(1)).0;
         self.out_pending.push(chunk);
     }
