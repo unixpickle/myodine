@@ -30,16 +30,21 @@ impl Server {
 
     pub fn handle_message(&mut self, message: Message) -> Result<Message, String> {
         if discovery::is_domain_hash_query(&message) {
-            discovery::domain_hash_response(&message)
+            return discovery::domain_hash_response(&message);
         } else if discovery::is_download_gen_query(&message) {
-            discovery::download_gen_response(&message)
+            return discovery::download_gen_response(&message);
         } else if establish::is_establish_query(&message) {
-            self.handle_establish(message)
-        } else {
-            let mut response = message.clone();
-            response.header.response_code = ResponseCode::NoError;
-            Ok(response)
+            return self.handle_establish(message);
+        } else if let Some(id) = xfer::xfer_query_session_id(&message) {
+            let mut some_sess = (&mut self.sessions).into_iter().find(|x| x.session_id() == id);
+            if let Some(ref mut session) = some_sess {
+                return session.handle_message(message, &self.flags.host);
+            }
         }
+        let mut response = message.clone();
+        response.header.is_response = true;
+        response.header.response_code = ResponseCode::NoError;
+        Ok(response)
     }
 
     pub fn handle_establish(&mut self, message: Message) -> Result<Message, String> {

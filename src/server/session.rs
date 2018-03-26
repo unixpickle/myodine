@@ -2,7 +2,10 @@ use std::net::TcpStream;
 use std::time::{Duration, Instant};
 
 use myodine::conn::TcpChunker;
-use myodine::dns_proto::record::RecordType;
+use myodine::dns_coding::dns_encode;
+use myodine::dns_proto::domain::Domain;
+use myodine::dns_proto::message::Message;
+use myodine::dns_proto::record::{Record, RecordHeader, RecordType};
 use myodine::myo_proto::establish::EstablishQuery;
 use myodine::myo_proto::name_code::{NameCode, get_name_code};
 use myodine::myo_proto::record_code::{RecordCode, get_record_code};
@@ -14,7 +17,8 @@ pub struct Session {
     state: WwrState,
     name_code: Box<NameCode>,
     record_code: Box<RecordCode>,
-    conn: TcpChunker
+    conn: TcpChunker,
+    send_window: u16
 }
 
 impl Session {
@@ -41,6 +45,7 @@ impl Session {
             name_code: name_code,
             record_code: record_code,
             conn: conn,
+            send_window: query.send_window
         })
     }
 
@@ -52,7 +57,27 @@ impl Session {
         Instant::now() - self.last_used > timeout
     }
 
-    pub fn handle_packet(&mut self, packet: ClientPacket) -> Packet {
+    pub fn handle_message(&mut self, message: Message, host: &Domain) -> Result<Message, String> {
+        let (api, _, data) = self.name_code.decode_domain(&message.questions[0].domain, host)?;
+        let in_packet = ClientPacket::decode(api, data, self.send_window)?;
+        let response_packet = self.handle_packet(in_packet);
+        let mut response = message;
+        let record = Record{
+            header: RecordHeader{
+                domain: response.questions[0].domain.clone(),
+                record_type: response.questions[0].record_type,
+                record_class: response.questions[0].record_class,
+                ttl: 0,
+            },
+            body: self.record_code.encode_body(&dns_encode(&response_packet)?)?
+        };
+        response.answers.push(record);
+        response.header.is_response = true;
+        response.header.answer_count = 1;
+        Ok(response)
+    }
+
+    fn handle_packet(&mut self, packet: ClientPacket) -> Packet {
         // TODO: verify packet using sequence number!
         self.last_used = Instant::now();
         self.state.handle_ack(&packet.packet.ack);
