@@ -32,6 +32,7 @@ pub fn establish_response(query: &Message, host: &Domain, resp: EstablishRespons
         body: body
     });
     result.header.answer_count = 1;
+    result.header.is_response = true;
     Ok(result)
 }
 

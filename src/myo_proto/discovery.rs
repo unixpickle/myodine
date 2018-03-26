@@ -35,6 +35,7 @@ pub fn domain_hash_response(query: &Message) -> Result<Message, String> {
         body: RecordBody::A(hash)
     });
     result.header.answer_count = 1;
+    result.header.is_response = true;
     Ok(result)
 }
 
@@ -58,6 +59,7 @@ pub fn download_gen_response(query: &Message) -> Result<Message, String> {
         body: encoded
     });
     result.header.answer_count = 1;
+    result.header.is_response = true;
     Ok(result)
 }
 
