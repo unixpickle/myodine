@@ -44,11 +44,17 @@ impl Session {
         })
     }
 
+    pub fn session_id(&self) -> u16 {
+        self.id
+    }
+
     pub fn timed_out(&self, timeout: Duration) -> bool {
         Instant::now() - self.last_used > timeout
     }
 
     pub fn handle_packet(&mut self, packet: ClientPacket) -> Packet {
+        // TODO: verify packet using sequence number!
+        self.last_used = Instant::now();
         self.state.handle_ack(&packet.packet.ack);
         if self.conn.can_send() && packet.packet.chunk.is_some() {
             let mut buffer = Vec::new();

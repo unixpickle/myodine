@@ -1,17 +1,20 @@
 extern crate clap;
 extern crate myodine;
 
+mod flags;
+mod session;
+mod server;
+
 use std::net::UdpSocket;
 use std::process::exit;
+use std::time::Duration;
 
 use clap::{Arg, App};
 use myodine::dns_coding::{dns_decode, dns_encode};
-use myodine::dns_proto::header::ResponseCode;
 use myodine::dns_proto::message::Message;
-use myodine::myo_proto::discovery;
 
-mod session;
-use session::Session;
+use flags::Flags;
+use server::Server;
 
 fn main() {
     let matches = App::new("myodine-server")
@@ -24,16 +27,36 @@ fn main() {
         .get_matches();
     let addr = matches.value_of("addr").unwrap_or("localhost:53");
 
-    let socket_res = UdpSocket::bind(addr);
-    if socket_res.is_err() {
-        eprintln!("failed to listen: {}", socket_res.err().unwrap());
+    // TODO: add timeout flags.
+    // TODO: add password flag.
+    // TODO: add host flag.
+    // TODO: add proof window flag.
+
+    let flags = Flags{
+        listen_addr: String::from(addr),
+        password: String::from("password"),
+        host: "foo.com".parse().unwrap(),
+        conn_timeout: Duration::new(5, 0),
+        session_timeout: Duration::new(30, 0),
+        proof_window: 100
+    };
+
+    let socket = UdpSocket::bind(addr);
+    if socket.is_err() {
+        eprintln!("failed to listen: {}", socket.err().unwrap());
         exit(1);
     }
-    let socket = socket_res.unwrap();
-    let mut server = Server::new();
+    let socket = socket.unwrap();
+    socket.set_read_timeout(Some(flags.session_timeout / 2)).unwrap();
+    let mut server = Server::new(flags);
     loop {
         let mut buf = [0; 2048];
-        let (size, sender_addr) = socket.recv_from(&mut buf).unwrap();
+        let result = socket.recv_from(&mut buf);
+        server.garbage_collect();
+        if result.is_err() {
+            continue;
+        }
+        let (size, sender_addr) = result.unwrap();
         if let Ok(message) = dns_decode::<Message>(buf[0..size].to_vec()) {
             match server.handle_message(message) {
                 Ok(response) => match dns_encode(&response) {
@@ -46,28 +69,6 @@ fn main() {
                 }
                 Err(err) => eprintln!("error processing query from {}: {}", sender_addr, err)
             }
-        }
-    }
-}
-
-struct Server {
-    // TODO: state here for connections, etc.
-}
-
-impl Server {
-    fn new() -> Server {
-        Server{}
-    }
-
-    fn handle_message(&mut self, message: Message) -> Result<Message, String> {
-        if discovery::is_domain_hash_query(&message) {
-            discovery::domain_hash_response(&message)
-        } else if discovery::is_download_gen_query(&message) {
-            discovery::download_gen_response(&message)
-        } else {
-            let mut response = message.clone();
-            response.header.response_code = ResponseCode::NoError;
-            Ok(response)
         }
     }
 }
