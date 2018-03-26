@@ -59,6 +59,7 @@ impl Session {
 
     pub fn handle_message(&mut self, message: Message, host: &Domain) -> Result<Message, String> {
         let (api, _, data) = self.name_code.decode_domain(&message.questions[0].domain, host)?;
+        // TODO: is this the correct window size to be using?
         let in_packet = ClientPacket::decode(api, data, self.send_window)?;
         let response_packet = self.handle_packet(in_packet);
         let mut response = message;

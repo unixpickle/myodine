@@ -1,16 +1,22 @@
 extern crate clap;
 extern crate myodine;
 
+mod flags;
+mod discovery;
+mod establish;
+mod events;
+mod requester;
+mod session;
+
+use std::net::{TcpListener, TcpStream};
 use std::process::exit;
-use std::sync::mpsc::channel;
 
 use clap::{Arg, App};
 
-mod discovery;
-mod events;
-mod requester;
-use discovery::{Features, discover_features};
-use requester::Requester;
+use flags::Flags;
+use discovery::discover_features;
+use establish::establish;
+use session::Session;
 
 fn main() {
     let matches = App::new("myodine-client")
@@ -32,28 +38,36 @@ fn main() {
             .index(1))
         .get_matches();
 
-    let addr = matches.value_of("addr").unwrap_or("localhost:53");
-    let host = matches.value_of("host").unwrap();
-    let concurrency = matches.value_of("concurrency").unwrap().parse().unwrap();
+    // TODO: add a bunch of flags here.
 
-    let parsed_host = host.parse();
-    if let &Err(ref err) = &parsed_host {
-        eprintln!("Invalid host: {}", err);
+    // TODO: macro for error handling.
+
+    let flags = Flags{
+        addr: String::from(matches.value_of("addr").unwrap_or("localhost:53")),
+        host: matches.value_of("host").unwrap().parse().unwrap(),
+        concurrency: matches.value_of("concurrency").unwrap().parse().unwrap(),
+        password: String::from("password"),
+        remote_addr: String::from("localhost"),
+        remote_port: 1337,
+        listen_port: 1234
+    };
+
+    println!("Waiting for incoming connection...");
+    // TODO: handle listen error better.
+    let listener = TcpListener::bind(format!("localhost:{}", flags.listen_port)).unwrap();
+    let (conn, _) = listener.accept().unwrap();
+
+    println!("Discovering features @{} for {}...", flags.host, flags.addr);
+    let features = discover_features(&flags.addr, &flags.host);
+    if let &Err(ref err) = &features {
+        eprintln!("Failed to discover features: {}", err);
         exit(1);
     }
+    let features = features.unwrap();
 
-    println!("Discovering features @{} for {}...", host, addr);
-    match discover_features(&addr, parsed_host.as_ref().unwrap()) {
-        Ok(features) => {
-            println!("Features: receive_mtu={} send_mtu={}", features.receive_mtu, features.send_mtu);
-            println!("Creating requester...");
-            let (event_sender, event_receiver) = channel();
-            let requester = Requester::open(&addr, concurrency, event_sender);
-        }
-        Err(err) => {
-            eprintln!("Failed to discover features: {}", err);
-            exit(1);
-        }
-    }
-
+    // TODO: handle errors better.
+    println!("Establishing session...");
+    let establishment = establish(&flags, features).unwrap();
+    println!("Running session...");
+    Session::new(&flags, conn, establishment).unwrap().run();
 }

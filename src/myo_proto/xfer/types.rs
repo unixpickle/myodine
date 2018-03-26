@@ -128,12 +128,13 @@ impl ClientPacket {
 }
 
 impl Packet {
-    pub fn decode(packet: &mut DecPacket, window_size: u16) -> Result<Packet, String> {
-        let ack = Ack::decode(packet, window_size)?;
+    pub fn decode(packet: &[u8], window_size: u16) -> Result<Packet, String> {
+        let mut packet = DecPacket::new(packet.to_vec());
+        let ack = Ack::decode(&mut packet, window_size)?;
         Ok(Packet{
             ack: ack,
             chunk: if packet.remaining() > 0 {
-                Some(Decoder::dns_decode(packet)?)
+                Some(Decoder::dns_decode(&mut packet)?)
             } else {
                 None
             }
