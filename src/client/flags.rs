@@ -7,6 +7,8 @@ pub struct Flags {
     pub addr: String,
     pub host: Domain,
     pub concurrency: usize,
+    pub query_window: u16,
+    pub response_window: u16,
     pub password: String,
     pub remote_host: Domain,
     pub remote_port: u16,
@@ -21,6 +23,18 @@ impl Flags {
                 .long("concurrency")
                 .value_name("NUM")
                 .help("Set the maximum number of concurrent requests")
+                .takes_value(true))
+            .arg(Arg::with_name("query-window")
+                .short("q")
+                .long("query-window")
+                .value_name("NUM")
+                .help("Set the window size for outgoing data")
+                .takes_value(true))
+            .arg(Arg::with_name("response-window")
+                .short("w")
+                .long("response-window")
+                .value_name("NUM")
+                .help("Set the window size for incoming data")
                 .takes_value(true))
             .arg(Arg::with_name("remote-host")
                 .short("r")
@@ -67,6 +81,8 @@ impl Flags {
             addr: String::from(matches.value_of("addr").unwrap_or("localhost:53")),
             host: parse_arg!("host", "")?,
             concurrency: parse_arg!("concurrency", "2")?,
+            query_window: parse_arg!("query-window", "4")?,
+            response_window: parse_arg!("response-window", "4")?,
             password: String::from(matches.value_of("password").unwrap_or("")),
             remote_host: parse_arg!("remote-host", "localhost")?,
             remote_port: parse_arg!("remote-port", "22")?,

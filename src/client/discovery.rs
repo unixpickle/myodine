@@ -1,20 +1,26 @@
 use myodine::dns_proto::{Domain, RecordType};
+use myodine::myo_proto::name_code::{NameCode, get_name_code};
+use myodine::myo_proto::record_code::{RecordCode, get_record_code};
 
 pub struct Features {
-    pub receive_record_type: RecordType,
-    pub receive_code: String,
-    pub receive_mtu: usize,
-    pub send_code: String,
-    pub send_mtu: usize
+    pub record_type: RecordType,
+    pub response_encoding: String,
+    pub response_mtu: u16,
+    pub name_encoding: String,
+    pub query_mtu: u16,
+    pub name_code: Box<NameCode>,
+    pub record_code: Box<RecordCode>
 }
 
-pub fn discover_features(address: &str, host: &Domain) -> Result<Features, String> {
+pub fn discover_features(_address: &str, _host: &Domain) -> Result<Features, String> {
     // TODO: perform feature discovery here.
     Ok(Features{
-        receive_record_type: RecordType::TXT,
-        receive_code: String::from("raw"),
-        receive_mtu: 64,
-        send_code: String::from("b16"),
-        send_mtu: 64
+        record_type: RecordType::TXT,
+        response_encoding: String::from("raw"),
+        response_mtu: 64,
+        name_encoding: String::from("b16"),
+        query_mtu: 64,
+        name_code: get_name_code("b16").unwrap(),
+        record_code: get_record_code(RecordType::TXT, "raw").unwrap()
     })
 }

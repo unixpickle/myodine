@@ -16,8 +16,6 @@ use flags::Flags;
 use establish::Establishment;
 
 pub struct Session {
-    name_code: Box<NameCode>,
-    record_code: Box<RecordCode>,
     highway: Highway,
     state: WwrState,
     conn: TcpChunker,
@@ -29,13 +27,11 @@ impl Session {
     pub fn new(flags: &Flags, conn: TcpStream, info: Establishment) -> io::Result<Session>
     {
         let (highway, events) = Highway::open(&flags.addr, flags.concurrency);
-        let conn = TcpChunker::new(conn, info.client_mtu as usize, info.client_window as usize,
-                info.server_window as usize)?;
+        let conn = TcpChunker::new(conn, info.query_mtu as usize, info.query_window as usize,
+                info.response_window as usize)?;
         Ok(Session{
-            name_code: get_name_code(&info.name_code).unwrap(),
-            record_code: get_record_code(info.record_type, &info.record_code).unwrap(),
             highway: highway,
-            state: WwrState::new(info.server_window, info.client_window, info.seq_start),
+            state: WwrState::new(info.response_window, info.query_window, info.seq_start),
             conn: conn,
             events: Some(events),
             info: info
@@ -67,11 +63,11 @@ impl Session {
     }
 
     fn handle_message(&mut self, msg: Message) {
-        if msg.answers.len() != 1 {
+        if msg.answers.len() != 1 || msg.header.truncated {
             return;
         }
-        if let Ok(raw_body) = self.record_code.decode_body(&msg.answers[0].body) {
-            if let Ok(packet) = Packet::decode_response(&raw_body, self.info.server_window) {
+        if let Ok(raw_body) = self.info.record_code.decode_body(&msg.answers[0].body) {
+            if let Ok(packet) = Packet::decode_response(&raw_body, self.info.query_window) {
                 self.handle_packet(packet);
             }
         }
