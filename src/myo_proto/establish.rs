@@ -49,8 +49,8 @@ pub struct EstablishQuery {
     pub response_encoding: String,
     pub mtu: u16,
     pub name_encoding: String,
-    pub send_window: u16,
-    pub recv_window: u16,
+    pub query_window: u16,
+    pub response_window: u16,
     pub proof: u64,
     pub port: u16,
     pub host: Domain
@@ -74,12 +74,12 @@ impl EstablishQuery {
         let response_encoding = domain.parts()[0].chars().skip(1).collect();
         let mtu = domain.parts()[1].parse();
         let name_encoding = domain.parts()[2].clone();
-        let send_window = domain.parts()[3].parse();
-        let recv_window = domain.parts()[4].parse();
+        let query_window = domain.parts()[3].parse();
+        let response_window = domain.parts()[4].parse();
         let proof = u64::from_str_radix(&domain.parts()[5], 16);
         let port = domain.parts()[6].parse();
         let host = &domain.parts()[7..(domain.parts().len() - host.parts().len())];
-        if mtu.is_err() || send_window.is_err() || recv_window.is_err() || proof.is_err() ||
+        if mtu.is_err() || query_window.is_err() || response_window.is_err() || proof.is_err() ||
             port.is_err() {
             Err(String::from("invalid number in domain"))
         } else {
@@ -87,8 +87,8 @@ impl EstablishQuery {
                 response_encoding: response_encoding,
                 mtu: mtu.unwrap(),
                 name_encoding: name_encoding,
-                send_window: send_window.unwrap(),
-                recv_window: recv_window.unwrap(),
+                query_window: query_window.unwrap(),
+                response_window: response_window.unwrap(),
                 proof: proof.unwrap(),
                 port: port.unwrap(),
                 host: Domain::from_parts(host.to_vec())?
@@ -102,7 +102,7 @@ impl EstablishQuery {
         macro_rules! push_fmt {
             ( $($x:expr),* ) => { { $(parts.push(format!("{}", $x));)* } }
         }
-        push_fmt!(self.mtu, self.name_encoding, self.send_window, self.recv_window);
+        push_fmt!(self.mtu, self.name_encoding, self.query_window, self.response_window);
         parts.push(format!("{:x}", self.proof));
         push_fmt!(self.port);
         parts.extend(self.host.parts().to_vec());
@@ -121,7 +121,7 @@ impl EstablishQuery {
 }
 
 pub enum EstablishResponse {
-    Success(u16, u32),
+    Success{id: u16, seq: u32},
     Failure(String),
     Unknown(u8)
 }
@@ -132,7 +132,7 @@ impl Decoder for EstablishResponse {
             0 => {
                 let session_id = Decoder::dns_decode(packet)?;
                 let seq_num = Decoder::dns_decode(packet)?;
-                EstablishResponse::Success(session_id, seq_num)
+                EstablishResponse::Success{id: session_id, seq: seq_num}
             },
             1 => {
                 let size = packet.remaining();
@@ -151,7 +151,7 @@ impl Decoder for EstablishResponse {
 impl Encoder for EstablishResponse {
     fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
         match self {
-            &EstablishResponse::Success(ref session_id, ref seq_num) => {
+            &EstablishResponse::Success{id: ref session_id, seq: ref seq_num} => {
                 0u8.dns_encode(packet)?;
                 session_id.dns_encode(packet)?;
                 seq_num.dns_encode(packet)

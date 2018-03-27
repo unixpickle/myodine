@@ -59,7 +59,7 @@ impl Server {
                 match sess_res {
                     Ok(sess) => {
                         self.sessions.push(sess);
-                        establish::EstablishResponse::Success(id, seq_start)
+                        establish::EstablishResponse::Success{id: id, seq: seq_start}
                     },
                     Err(msg) => establish::EstablishResponse::Failure(msg)
                 }

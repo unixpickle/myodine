@@ -11,7 +11,7 @@ Let `HOSTNAME` be the root domain name of the myodine server.
 The establishment request has a domain name of the form:
 
 ```
-e<response-encoding>.<mtu>.<name-encoding>.<send-window>.<recv-window>.<proof>.<port>.<host>.HOSTNAME
+e<response-encoding>.<mtu>.<name-encoding>.<query-window>.<response-window>.<proof>.<port>.<host>.HOSTNAME
 ```
 
 Here is a breakdown of each field:
@@ -19,8 +19,8 @@ Here is a breakdown of each field:
  * `<response-encoding>` - a string representing the encoding to use for responses. The request RR type tells the server something about the encoding, but it leaves out specific information (e.g. the characters that `TXT` supports). For now, the only supported value is `raw`.
  * `<mtu>` - a base-10 number indicating the maximum number of bytes the server may send in a single response payload.
  * `<name-encoding>` - a string representing the encoding used to put data into domain names. See [Upload encodings](Encodings.md#upload-encodings) for more.
- * `<send-window>` - the server's outgoing window size.
- * `<recv-window>` - the client's outgoing window size.
+ * `<query-window>` - the client's outgoing window size.
+ * `<response-window>` - the server's outgoing window size.
  * `<proof>` - a hexadecimal value storing the first 8 bytes of the SHA1 hash of `<password><time><password>`, where `time` is the current epoch time in seconds encoded as a decimal string. The server should not accept proofs for times that are off by more than a minute or so.
  * `<host>` - the host to proxy to.
  * `<port>` - the TCP port to proxy to.

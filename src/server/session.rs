@@ -18,7 +18,7 @@ pub struct Session {
     name_code: Box<NameCode>,
     record_code: Box<RecordCode>,
     conn: TcpChunker,
-    send_window: u16
+    response_window: u16
 }
 
 impl Session {
@@ -36,16 +36,17 @@ impl Session {
         let addr = addr_str.parse().map_err(|e| format!("{}", e))?;
         let stream = TcpStream::connect_timeout(&addr, timeout)
             .map_err(|e| format!("connect error: {}", e))?;
-        let conn = TcpChunker::new(stream, query.mtu as usize, query.send_window as usize,
-                query.recv_window as usize).map_err(|e| format!("chunker error: {}", e))?;
+        // TCP buffer sizes are chosen rather arbitrarily.
+        let conn = TcpChunker::new(stream, query.mtu as usize, query.response_window as usize,
+                query.query_window as usize).map_err(|e| format!("chunker error: {}", e))?;
         Ok(Session{
             id: id,
             last_used: Instant::now(),
-            state: WwrState::new(query.recv_window, query.send_window, seq_start),
+            state: WwrState::new(query.query_window, query.response_window, seq_start),
             name_code: name_code,
             record_code: record_code,
             conn: conn,
-            send_window: query.send_window
+            response_window: query.response_window
         })
     }
 
@@ -59,8 +60,7 @@ impl Session {
 
     pub fn handle_message(&mut self, message: Message, host: &Domain) -> Result<Message, String> {
         let (api, _, data) = self.name_code.decode_domain(&message.questions[0].domain, host)?;
-        // TODO: is this the correct window size to be using?
-        let in_packet = ClientPacket::decode(api, data, self.send_window)?;
+        let in_packet = ClientPacket::decode(api, data, self.response_window)?;
         let response_packet = self.handle_packet(in_packet);
         let mut response = message;
         let record = Record{
