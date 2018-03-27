@@ -9,7 +9,7 @@ use myodine::dns_proto::record::{Record, RecordHeader, RecordType};
 use myodine::myo_proto::establish::EstablishQuery;
 use myodine::myo_proto::name_code::{NameCode, get_name_code};
 use myodine::myo_proto::record_code::{RecordCode, get_record_code};
-use myodine::myo_proto::xfer::{ClientPacket, Packet, WwrState};
+use myodine::myo_proto::xfer::{ClientPacket, Packet, WwrState, handle_packet_in, next_packet_out};
 
 pub struct Session {
     id: u16,
@@ -81,35 +81,7 @@ impl Session {
     fn handle_packet(&mut self, packet: ClientPacket) -> Packet {
         // TODO: verify packet using sequence number!
         self.last_used = Instant::now();
-        self.state.handle_ack(&packet.packet.ack);
-        if self.conn.can_send() && packet.packet.chunk.is_some() {
-            let mut buffer = Vec::new();
-            let mut finished = false;
-            for chunk in self.state.handle_chunk(packet.packet.chunk.unwrap()) {
-                if chunk.data.len() == 0 {
-                    finished = true;
-                    break; // Data past EOF is meaningless.
-                } else {
-                    buffer.extend(chunk.data);
-                }
-            }
-            if buffer.len() > 0 {
-                self.conn.send(buffer);
-            }
-            if finished {
-                self.conn.send_finished();
-            }
-        }
-        while self.state.send_buffer_space() > 0 {
-            if let Some(data) = self.conn.recv() {
-                self.state.push_send_buffer(data);
-            } else {
-                break;
-            }
-        }
-        Packet{
-            ack: self.state.next_send_ack(),
-            chunk: self.state.next_send_chunk()
-        }
+        handle_packet_in(packet.packet, &mut self.state, &mut self.conn);
+        next_packet_out(&mut self.state, &mut self.conn)
     }
 }

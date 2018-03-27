@@ -1,5 +1,4 @@
 use dns_proto::message::Message;
-use myo_proto::xfer::types::Packet;
 use myo_proto::util::is_api_query;
 
 pub fn is_xfer_query(query: &Message) -> bool {
