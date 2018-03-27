@@ -1,16 +1,12 @@
 use std::io;
 use std::mem::replace;
 use std::net::TcpStream;
-use std::process::exit;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender};
+use std::time::Duration;
 
 use myodine::conn::{Highway, Event, TcpChunker};
-use myodine::dns_coding::dns_decode;
-use myodine::dns_proto::{Message, RecordType};
-use myodine::myo_proto::establish::{EstablishQuery, EstablishResponse};
-use myodine::myo_proto::name_code::{NameCode, get_name_code};
-use myodine::myo_proto::record_code::{RecordCode, get_record_code};
-use myodine::myo_proto::xfer::{WwrState, Packet};
+use myodine::dns_proto::{Domain, Message, Question, RecordClass};
+use myodine::myo_proto::xfer::{Packet, WwrState, handle_packet_in, next_packet_out};
 
 use flags::Flags;
 use establish::Establishment;
@@ -20,11 +16,13 @@ pub struct Session {
     state: WwrState,
     conn: TcpChunker,
     events: Option<Receiver<Event>>,
-    info: Establishment
+    info: Establishment,
+    host: Domain,
+    query_timeout: Duration
 }
 
 impl Session {
-    pub fn new(flags: &Flags, conn: TcpStream, info: Establishment) -> io::Result<Session>
+    pub fn new(flags: Flags, conn: TcpStream, info: Establishment) -> io::Result<Session>
     {
         let (highway, events) = Highway::open(&flags.addr, flags.concurrency);
         let conn = TcpChunker::new(conn, info.query_mtu as usize, info.query_window as usize,
@@ -34,19 +32,24 @@ impl Session {
             state: WwrState::new(info.response_window, info.query_window, info.seq_start),
             conn: conn,
             events: Some(events),
-            info: info
+            info: info,
+            host: flags.host,
+            query_timeout: flags.query_timeout
         })
     }
 
     pub fn run(&mut self, log: &Sender<String>) -> Result<(), String> {
+        for lane in 0..self.highway.num_lanes() {
+            self.populate_lane(lane)?;
+        }
         for event in replace(&mut self.events, None).unwrap() {
             match event {
                 Event::Response(lane, msg) => {
                     self.handle_message(msg);
-                    self.populate_lane(lane);
+                    self.populate_lane(lane)?;
                 },
                 Event::Timeout(lane) => {
-                    self.populate_lane(lane);
+                    self.populate_lane(lane)?;
                 },
                 Event::SendError(lane, msg) => {
                     log.send(format!("lane {}: error sending message: {}", lane, msg)).unwrap();
@@ -74,11 +77,19 @@ impl Session {
     }
 
     fn handle_packet(&mut self, packet: Packet) {
-        // TODO: reuse the code from server::session::Session::handle_packet.
+        handle_packet_in(packet, &mut self.state, &mut self.conn);
     }
 
-    fn populate_lane(&mut self, lane: usize) {
-        // TODO: squeeze as much data as possible from self.conn.
-        // TODO: pull a chunk out of data out of self.state.
+    fn populate_lane(&mut self, lane: usize) -> Result<(), String> {
+        let packet = next_packet_out(&mut self.state, &mut self.conn);
+        let (api_code, data) = packet.encode_query()?;
+        let message = Message::new_query(Question{
+            domain: self.info.name_code.encode_domain(api_code, self.info.session_id, &data,
+                &self.host)?,
+            record_type: self.info.record_type,
+            record_class: RecordClass::IN
+        });
+        self.highway.send(lane, message, self.query_timeout.clone());
+        Ok(())
     }
 }

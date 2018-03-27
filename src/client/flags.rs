@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use clap::{App, Arg};
 
 use myodine::dns_proto::Domain;
@@ -12,7 +14,8 @@ pub struct Flags {
     pub password: String,
     pub remote_host: Domain,
     pub remote_port: u16,
-    pub listen_port: u16
+    pub listen_port: u16,
+    pub query_timeout: Duration
 }
 
 impl Flags {
@@ -60,6 +63,12 @@ impl Flags {
                 .value_name("VALUE")
                 .help("Set the server password")
                 .takes_value(true))
+            .arg(Arg::with_name("query-timeout")
+                .short("T")
+                .long("query-timeout")
+                .value_name("INT")
+                .help("Set the query timeout in seconds")
+                .takes_value(true))
             .arg(Arg::with_name("addr")
                 .help("Set the address of the proxy")
                 .required(true)
@@ -86,7 +95,8 @@ impl Flags {
             password: String::from(matches.value_of("password").unwrap_or("")),
             remote_host: parse_arg!("remote-host", "127.0.0.1")?,
             remote_port: parse_arg!("remote-port", "22")?,
-            listen_port: parse_arg!("listen-port", "2222")?
+            listen_port: parse_arg!("listen-port", "2222")?,
+            query_timeout: Duration::new(parse_arg!("query-timeout", "5")?, 0)
         })
     }
 }

@@ -39,6 +39,10 @@ impl Highway {
         (Highway{senders: senders}, event_receiver)
     }
 
+    pub fn num_lanes(&self) -> usize {
+        self.senders.len()
+    }
+
     pub fn send(&self, lane: usize, message: Message, timeout: Duration) {
         self.senders[lane].send((message, timeout)).ok();
     }
