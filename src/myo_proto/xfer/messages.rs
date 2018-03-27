@@ -1,10 +1,6 @@
 use dns_proto::message::Message;
 use myo_proto::util::is_api_query;
 
-pub fn is_xfer_query(query: &Message) -> bool {
-    xfer_query_session_id(query).is_some()
-}
-
 pub fn xfer_query_session_id(query: &Message) -> Option<u16> {
     if !is_api_query(query, 't') && !is_api_query(query, 'p') {
         return None;

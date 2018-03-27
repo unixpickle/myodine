@@ -22,12 +22,6 @@ pub struct Packet {
     pub chunk: Option<Chunk>
 }
 
-#[derive(Clone, Debug)]
-pub struct ClientPacket {
-    pub session_id: u16,
-    pub packet: Packet
-}
-
 impl Ack {
     pub fn decode(packet: &mut DecPacket, window_size: u16) -> Result<Ack, String> {
         let window_start = Decoder::dns_decode(packet)?;
@@ -87,49 +81,49 @@ impl Encoder for Chunk {
     }
 }
 
-impl ClientPacket {
-    pub fn decode(api_code: char, data: Vec<u8>, window_size: u16)
-        -> Result<ClientPacket, String>
-    {
-        let mut packet = DecPacket::new(data);
-        if api_code != 't' && api_code != 'p' {
-            return Err(format!("unknown API code: {}", api_code));
-        }
-        let session_id = Decoder::dns_decode(&mut packet)?;
-        let ack = Ack::decode(&mut packet, window_size)?;
-
-        Ok(ClientPacket{
-            session_id: session_id,
-            packet: Packet{
-                ack: ack,
-                chunk: if api_code == 't' {
-                    Some(Decoder::dns_decode(&mut packet)?)
-                } else {
-                    None
-                }
-            }
-        })
-    }
-
-    pub fn encode(&self) -> Result<(char, Vec<u8>), String> {
+impl Packet {
+    pub fn encode_query(&self) -> Result<(char, Vec<u8>), String> {
         let mut enc_packet = EncPacket::new();
-        self.session_id.dns_encode(&mut enc_packet)?;
-        self.packet.ack.dns_encode(&mut enc_packet)?;
-        if let &Some(ref chunk) = &self.packet.chunk {
+        self.ack.dns_encode(&mut enc_packet)?;
+        let api_code = if let &Some(ref chunk) = &self.chunk {
             chunk.dns_encode(&mut enc_packet)?;
-            Ok(('t', enc_packet.data().clone()))
+            't'
         } else {
             let mut rng = thread_rng();
             let range = Range::new(0u64, 0xffffffffffffffffu64);
             range.ind_sample(&mut rng).dns_encode(&mut enc_packet)?;
-            Ok(('p', enc_packet.data().clone()))
-        }
+            'p'
+        };
+        Ok((api_code, enc_packet.data().clone()))
     }
-}
 
-impl Packet {
-    pub fn decode(packet: &[u8], window_size: u16) -> Result<Packet, String> {
-        let mut packet = DecPacket::new(packet.to_vec());
+    pub fn decode_query(data: &[u8], window_size: u16, api_code: char) -> Result<Packet, String> {
+        let mut packet = DecPacket::new(data.to_vec());
+        if api_code != 't' && api_code != 'p' {
+            return Err(format!("unknown API code: {}", api_code));
+        }
+        let ack = Ack::decode(&mut packet, window_size)?;
+        Ok(Packet{
+            ack: ack,
+            chunk: if api_code == 't' {
+                Some(Decoder::dns_decode(&mut packet)?)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn encode_response(&self) -> Result<Vec<u8>, String> {
+        let mut packet = EncPacket::new();
+        self.ack.dns_encode(&mut packet)?;
+        if let &Some(ref chunk) = &self.chunk {
+            chunk.dns_encode(&mut packet)?;
+        }
+        Ok(packet.data().clone())
+    }
+
+    pub fn decode_response(data: &[u8], window_size: u16) -> Result<Packet, String> {
+        let mut packet = DecPacket::new(data.to_vec());
         let ack = Ack::decode(&mut packet, window_size)?;
         Ok(Packet{
             ack: ack,
@@ -139,15 +133,5 @@ impl Packet {
                 None
             }
         })
-    }
-}
-
-impl Encoder for Packet {
-    fn dns_encode(&self, packet: &mut EncPacket) -> Result<(), String> {
-        self.ack.dns_encode(packet)?;
-        if let &Some(ref chunk) = &self.chunk {
-            chunk.dns_encode(packet)?;
-        }
-        Ok(())
     }
 }

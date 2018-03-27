@@ -2,14 +2,13 @@ use std::net::TcpStream;
 use std::time::{Duration, Instant};
 
 use myodine::conn::TcpChunker;
-use myodine::dns_coding::dns_encode;
 use myodine::dns_proto::domain::Domain;
 use myodine::dns_proto::message::Message;
 use myodine::dns_proto::record::{Record, RecordHeader, RecordType};
 use myodine::myo_proto::establish::EstablishQuery;
 use myodine::myo_proto::name_code::{NameCode, get_name_code};
 use myodine::myo_proto::record_code::{RecordCode, get_record_code};
-use myodine::myo_proto::xfer::{ClientPacket, Packet, WwrState, handle_packet_in, next_packet_out};
+use myodine::myo_proto::xfer::{Packet, WwrState, handle_packet_in, next_packet_out};
 
 pub struct Session {
     id: u16,
@@ -60,7 +59,7 @@ impl Session {
 
     pub fn handle_message(&mut self, message: Message, host: &Domain) -> Result<Message, String> {
         let (api, _, data) = self.name_code.decode_domain(&message.questions[0].domain, host)?;
-        let in_packet = ClientPacket::decode(api, data, self.response_window)?;
+        let in_packet = Packet::decode_query(&data, self.response_window, api)?;
         let response_packet = self.handle_packet(in_packet);
         let mut response = message;
         let record = Record{
@@ -70,7 +69,7 @@ impl Session {
                 record_class: response.questions[0].record_class,
                 ttl: 0,
             },
-            body: self.record_code.encode_body(&dns_encode(&response_packet)?)?
+            body: self.record_code.encode_body(&response_packet.encode_response()?)?
         };
         response.answers.push(record);
         response.header.is_response = true;
@@ -78,10 +77,10 @@ impl Session {
         Ok(response)
     }
 
-    fn handle_packet(&mut self, packet: ClientPacket) -> Packet {
+    fn handle_packet(&mut self, packet: Packet) -> Packet {
         // TODO: verify packet using sequence number!
         self.last_used = Instant::now();
-        handle_packet_in(packet.packet, &mut self.state, &mut self.conn);
+        handle_packet_in(packet, &mut self.state, &mut self.conn);
         next_packet_out(&mut self.state, &mut self.conn)
     }
 }
