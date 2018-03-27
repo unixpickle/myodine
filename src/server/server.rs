@@ -4,8 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use myodine::myo_proto::discovery;
 use myodine::myo_proto::establish;
 use myodine::myo_proto::xfer;
-use myodine::dns_proto::header::ResponseCode;
-use myodine::dns_proto::message::Message;
+use myodine::dns_proto::{Message, ResponseCode};
 
 use flags::Flags;
 use session::Session;

@@ -1,4 +1,4 @@
-use myodine::dns_proto::record::RecordType;
+use myodine::dns_proto::RecordType;
 
 use discovery::Features;
 use flags::Flags;

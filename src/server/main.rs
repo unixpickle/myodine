@@ -9,7 +9,7 @@ use std::net::UdpSocket;
 use std::process::exit;
 
 use myodine::dns_coding::{dns_decode, dns_encode};
-use myodine::dns_proto::message::Message;
+use myodine::dns_proto::Message;
 
 use flags::Flags;
 use server::Server;

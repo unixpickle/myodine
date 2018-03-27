@@ -1,7 +1,7 @@
-pub mod types;
-pub mod wwr;
-pub mod messages;
-pub mod session;
+mod types;
+mod wwr;
+mod messages;
+mod session;
 
 pub use self::types::{Ack, Chunk, Packet};
 pub use self::wwr::WwrState;

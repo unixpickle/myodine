@@ -1,5 +1,4 @@
-use myodine::dns_proto::domain::Domain;
-use myodine::dns_proto::record::RecordType;
+use myodine::dns_proto::{Domain, RecordType};
 
 pub struct Features {
     pub receive_record_type: RecordType,

@@ -6,8 +6,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 
 use myodine::conn::{Highway, Event, TcpChunker};
 use myodine::dns_coding::dns_decode;
-use myodine::dns_proto::message::Message;
-use myodine::dns_proto::record::RecordType;
+use myodine::dns_proto::{Message, RecordType};
 use myodine::myo_proto::establish::{EstablishQuery, EstablishResponse};
 use myodine::myo_proto::name_code::{NameCode, get_name_code};
 use myodine::myo_proto::record_code::{RecordCode, get_record_code};

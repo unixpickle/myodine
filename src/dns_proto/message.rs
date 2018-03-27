@@ -1,7 +1,7 @@
 use dns_coding::{Encoder, EncPacket, Decoder, DecPacket};
-use dns_proto::domain::Domain;
-use dns_proto::record::{RecordType, RecordClass, Record};
-use dns_proto::header::Header;
+use super::domain::Domain;
+use super::header::Header;
+use super::record::{RecordType, RecordClass, Record};
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Question {

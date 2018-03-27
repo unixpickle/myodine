@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use clap::{App, Arg};
 
-use myodine::dns_proto::domain::Domain;
+use myodine::dns_proto::Domain;
 
 pub struct Flags {
     pub listen_addr: String,

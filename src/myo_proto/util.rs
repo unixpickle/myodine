@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
-use dns_proto::domain::Domain;
-use dns_proto::message::Message;
+use dns_proto::{Domain, Message};
 
 pub fn is_api_query(m: &Message, prefix_char: char) -> bool {
     let is_query = !m.header.is_response &&

@@ -1,6 +1,5 @@
 use conn::TcpChunker;
-use myo_proto::xfer::types::Packet;
-use myo_proto::xfer::wwr::WwrState;
+use super::{Packet, WwrState};
 
 pub fn handle_packet_in(packet: Packet, state: &mut WwrState, conn: &mut TcpChunker) {
     state.handle_ack(&packet.ack);

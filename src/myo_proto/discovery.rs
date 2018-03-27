@@ -1,11 +1,9 @@
 use std::net::Ipv4Addr;
 
-use dns_proto::domain::Domain;
-use dns_proto::message::Message;
-use dns_proto::record::{Record, RecordHeader, RecordType, RecordBody};
+use dns_proto::{Domain, Message, Record, RecordHeader, RecordType, RecordBody};
 
-use myo_proto::util::is_api_query;
-use myo_proto::record_code::get_record_code;
+use super::record_code::get_record_code;
+use super::util::is_api_query;
 
 extern crate sha1;
 use self::sha1::Sha1;

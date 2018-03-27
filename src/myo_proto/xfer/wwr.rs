@@ -1,6 +1,6 @@
 use std::num::Wrapping;
 
-use myo_proto::xfer::types::{Ack, Chunk};
+use super::{Ack, Chunk};
 
 pub struct WwrState {
     in_win_size: u16,

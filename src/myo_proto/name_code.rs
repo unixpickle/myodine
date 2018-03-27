@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use dns_proto::domain::Domain;
+use dns_proto::Domain;
 
 use super::util::domain_ends_with;
 

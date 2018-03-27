@@ -2,12 +2,10 @@ extern crate sha1;
 use self::sha1::Sha1;
 
 use dns_coding::{DecPacket, Decoder, EncPacket, Encoder, dns_encode};
-use dns_proto::domain::Domain;
-use dns_proto::message::Message;
-use dns_proto::record::{Record, RecordHeader};
+use dns_proto::{Domain, Message, Record, RecordHeader};
 
-use myo_proto::record_code::{get_record_code};
-use myo_proto::util::{is_api_query, domain_ends_with};
+use super::record_code::{get_record_code};
+use super::util::{is_api_query, domain_ends_with};
 
 pub fn is_establish_query(query: &Message) -> bool {
     is_api_query(query, 'e')

@@ -1,4 +1,9 @@
-pub mod domain;
-pub mod header;
-pub mod record;
-pub mod message;
+mod domain;
+mod header;
+mod record;
+mod message;
+
+pub use self::domain::Domain;
+pub use self::header::{Header, Opcode, ResponseCode};
+pub use self::message::{Message, Question};
+pub use self::record::{Record, RecordBody, RecordClass, RecordHeader, RecordType, SOADetails};

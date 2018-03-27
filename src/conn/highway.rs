@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use conn::dial::dial_udp;
 use dns_coding::{dns_decode, dns_encode};
-use dns_proto::message::Message;
+use dns_proto::Message;
 
 pub enum Event {
     Response(usize, Message),

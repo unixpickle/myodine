@@ -1,4 +1,4 @@
-use dns_proto::message::Message;
+use dns_proto::Message;
 use myo_proto::util::is_api_query;
 
 pub fn xfer_query_session_id(query: &Message) -> Option<u16> {

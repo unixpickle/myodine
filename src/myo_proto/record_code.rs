@@ -1,5 +1,5 @@
-use dns_proto::record::{RecordBody, RecordType};
 use dns_coding::{DecPacket, Decoder, EncPacket, Encoder};
+use dns_proto::{RecordBody, RecordType};
 
 pub fn get_record_code(record_type: RecordType, name: &str) -> Option<Box<RecordCode>> {
     match record_type {

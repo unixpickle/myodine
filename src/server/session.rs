@@ -2,9 +2,7 @@ use std::net::TcpStream;
 use std::time::{Duration, Instant};
 
 use myodine::conn::TcpChunker;
-use myodine::dns_proto::domain::Domain;
-use myodine::dns_proto::message::Message;
-use myodine::dns_proto::record::{Record, RecordHeader, RecordType};
+use myodine::dns_proto::{Domain, Message, Record, RecordHeader, RecordType};
 use myodine::myo_proto::establish::EstablishQuery;
 use myodine::myo_proto::name_code::{NameCode, get_name_code};
 use myodine::myo_proto::record_code::{RecordCode, get_record_code};
