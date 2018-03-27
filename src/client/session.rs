@@ -73,7 +73,7 @@ impl Session {
             return;
         }
         if let Ok(raw_body) = self.record_code.decode_body(&msg.answers[0].body) {
-            if let Ok(packet) = Packet::decode(&raw_body, self.info.server_window) {
+            if let Ok(packet) = Packet::decode_response(&raw_body, self.info.server_window) {
                 self.handle_packet(packet);
             }
         }
