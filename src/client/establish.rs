@@ -49,7 +49,7 @@ pub fn establish(flags: &Flags, features: Features) -> Result<Establishment, Str
     }
     let raw_data = features.record_code.decode_body(&response.answers[0].body)?;
     match dns_decode(raw_data)? {
-        EstablishResponse::Success{id: id, seq: seq} => {
+        EstablishResponse::Success{id, seq} => {
             Ok(Establishment{
                 name_code: features.name_code,
                 record_code: features.record_code,
