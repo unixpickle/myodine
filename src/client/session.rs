@@ -2,7 +2,7 @@ use std::io;
 use std::mem::replace;
 use std::net::TcpStream;
 use std::process::exit;
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 
 use myodine::conn::{Highway, Event, TcpChunker};
 use myodine::dns_coding::dns_decode;
@@ -43,7 +43,7 @@ impl Session {
         })
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, log: &Sender<String>) -> Result<(), String> {
         for event in replace(&mut self.events, None).unwrap() {
             match event {
                 Event::Response(lane, msg) => {
@@ -54,18 +54,17 @@ impl Session {
                     self.populate_lane(lane);
                 },
                 Event::SendError(lane, msg) => {
-                    eprintln!("lane {}: error sending message: {}", lane, msg);
+                    log.send(format!("lane {}: error sending message: {}", lane, msg)).unwrap();
                 },
                 Event::ConnectError(lane, err) => {
-                    eprintln!("lane {}: error connecting: {}", lane, err);
-                    return;
+                    return Err(format!("lane {}: error connecting: {}", lane, err));
                 },
                 Event::SocketError(lane, err) => {
-                    eprintln!("lane {}: error on socket: {}", lane, err);
-                    return;
+                    return Err(format!("lane {}: error on socket: {}", lane, err));
                 }
             }
         }
+        Ok(())
     }
 
     fn handle_message(&mut self, msg: Message) {
