@@ -84,7 +84,7 @@ impl Flags {
             query_window: parse_arg!("query-window", "4")?,
             response_window: parse_arg!("response-window", "4")?,
             password: String::from(matches.value_of("password").unwrap_or("")),
-            remote_host: parse_arg!("remote-host", "localhost")?,
+            remote_host: parse_arg!("remote-host", "127.0.0.1")?,
             remote_port: parse_arg!("remote-port", "22")?,
             listen_port: parse_arg!("listen-port", "2222")?
         })

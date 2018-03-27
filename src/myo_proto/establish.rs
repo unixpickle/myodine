@@ -155,6 +155,7 @@ impl Encoder for EstablishResponse {
                 seq_num.dns_encode(packet)
             },
             &EstablishResponse::Failure(ref message) => {
+                1u8.dns_encode(packet)?;
                 message.as_bytes().to_vec().dns_encode(packet)
             },
             &EstablishResponse::Unknown(_) => {
