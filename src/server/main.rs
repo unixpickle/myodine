@@ -7,9 +7,7 @@ mod server;
 
 use std::net::UdpSocket;
 use std::process::exit;
-use std::time::Duration;
 
-use clap::{Arg, App};
 use myodine::dns_coding::{dns_decode, dns_encode};
 use myodine::dns_proto::message::Message;
 
@@ -17,37 +15,20 @@ use flags::Flags;
 use server::Server;
 
 fn main() {
-    let matches = App::new("myodine-server")
-        .arg(Arg::with_name("addr")
-            .short("a")
-            .long("addr")
-            .value_name("ADDR:PORT")
-            .help("Set the address to listen on")
-            .takes_value(true))
-        .get_matches();
-    let addr = matches.value_of("addr").unwrap_or("localhost:53");
-
-    // TODO: add timeout flags.
-    // TODO: add password flag.
-    // TODO: add host flag.
-    // TODO: add proof window flag.
-
-    let flags = Flags{
-        listen_addr: String::from(addr),
-        password: String::from("password"),
-        host: "foo.com".parse().unwrap(),
-        conn_timeout: Duration::new(5, 0),
-        session_timeout: Duration::new(30, 0),
-        proof_window: 100
-    };
-
-    let socket = UdpSocket::bind(addr);
-    if socket.is_err() {
-        eprintln!("failed to listen: {}", socket.err().unwrap());
+    if let Err(msg) = main_or_err() {
+        eprintln!("{}", msg);
         exit(1);
     }
-    let socket = socket.unwrap();
-    socket.set_read_timeout(Some(flags.session_timeout / 2)).unwrap();
+}
+
+fn main_or_err() -> Result<(), String> {
+    let flags = Flags::parse()?;
+
+    let socket = UdpSocket::bind(&flags.listen_addr)
+        .map_err(|e| format!("listen failed: {}", e))?;
+    socket.set_read_timeout(Some(flags.session_timeout / 2))
+        .map_err(|e| format!("socket error: {}", e))?;
+
     let mut server = Server::new(flags);
     loop {
         let mut buf = [0; 2048];
