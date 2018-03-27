@@ -1,6 +1,6 @@
 use dns_coding::{Encoder, EncPacket, Decoder, DecPacket};
 use super::domain::Domain;
-use super::header::Header;
+use super::header::{Header, Opcode, ResponseCode};
 use super::record::{RecordType, RecordClass, Record};
 
 #[derive(PartialEq, Clone, Debug)]
@@ -17,6 +17,31 @@ pub struct Message {
     pub answers: Vec<Record>,
     pub authorities: Vec<Record>,
     pub additional: Vec<Record>
+}
+
+impl Message {
+    pub fn new_query(q: Question) -> Message {
+        Message{
+            header: Header{
+                identifier: 0,
+                is_response: false,
+                opcode: Opcode::Query,
+                authoritative: false,
+                truncated: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response_code: ResponseCode::NoError,
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                additional_count: 0
+            },
+            questions: vec![q],
+            answers: Vec::new(),
+            authorities: Vec::new(),
+            additional: Vec::new()
+        }
+    }
 }
 
 impl Encoder for Message {
