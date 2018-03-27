@@ -30,7 +30,7 @@ impl Session {
         let record_code = get_record_code(query_type, &query.response_encoding)
             .ok_or(String::from("bad record code"))?;
         let addr_str = format!("{}:{}", query.host, query.port);
-        let addr = addr_str.parse().map_err(|e| format!("{}", e))?;
+        let addr = addr_str.parse().map_err(|e| format!("parse {}: {}", addr_str, e))?;
         let stream = TcpStream::connect_timeout(&addr, timeout)
             .map_err(|e| format!("connect error: {}", e))?;
         // TCP buffer sizes are chosen rather arbitrarily.

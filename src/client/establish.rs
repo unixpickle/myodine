@@ -40,7 +40,7 @@ pub fn establish(flags: &Flags, features: Features) -> Result<Establishment, Str
         record_type: features.record_type,
         record_class: RecordClass::IN
     });
-    let conn = dial_udp(&flags.addr).map_err(|e| format!("{}", e))?;
+    let conn = dial_udp(&flags.addr).map_err(|e| format!("dial {}: {}", flags.addr, e))?;
     conn.set_read_timeout(Some(Duration::new(5, 0))).map_err(|e| format!("{}", e))?;
     let response = query_with_retries(&conn, &message, 5)
         .ok_or(String::from("no establishment response"))?;
