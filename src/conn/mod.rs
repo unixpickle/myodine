@@ -1,6 +1,6 @@
-pub mod chunker;
-pub mod dial;
-pub mod highway;
+mod chunker;
+mod dial;
+mod highway;
 
 pub use self::chunker::TcpChunker;
 pub use self::dial::dial_udp;

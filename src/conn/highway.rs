@@ -5,9 +5,10 @@ use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread::spawn;
 use std::time::{Duration, Instant};
 
-use conn::dial::dial_udp;
 use dns_coding::{dns_decode, dns_encode};
 use dns_proto::Message;
+
+use super::dial_udp;
 
 pub enum Event {
     Response(usize, Message),
