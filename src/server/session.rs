@@ -51,8 +51,8 @@ impl Session {
         self.id
     }
 
-    pub fn timed_out(&self, timeout: Duration) -> bool {
-        Instant::now() - self.last_used > timeout
+    pub fn is_done(&self, timeout: Duration) -> bool {
+        self.state.is_done() || Instant::now() - self.last_used > timeout
     }
 
     pub fn handle_message(&mut self, message: Message, host: &Domain) -> Result<Message, String> {

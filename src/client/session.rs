@@ -61,6 +61,9 @@ impl Session {
                     return Err(format!("lane {}: error on socket: {}", lane, err));
                 }
             }
+            if self.state.is_done() {
+                break;
+            }
         }
         Ok(())
     }

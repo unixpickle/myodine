@@ -79,8 +79,8 @@ impl WwrState {
         if self.out_eof {
             return;
         }
-        self.out_eof = true;
         self.push_send_buffer(Vec::new());
+        self.out_eof = true;
     }
 
     pub fn handle_ack(&mut self, ack: &Ack) {

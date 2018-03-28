@@ -31,6 +31,7 @@ fn main_or_err() -> Result<(), String> {
 
     let mut server = Server::new(flags);
     loop {
+        server.garbage_collect();
         let mut buf = [0; 2048];
         let result = socket.recv_from(&mut buf);
         server.garbage_collect();
