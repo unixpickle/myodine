@@ -91,8 +91,8 @@ impl Flags {
             }
         }
 
-        let min_time: u32 = parse_arg!("query-min-time", "50")?;
-        let max_time: u32 = parse_arg!("query-max-time", "50")?;
+        let min_time: u64 = parse_arg!("query-min-time", "50")?;
+        let max_time: u64 = parse_arg!("query-max-time", "5000")?;
         Ok(Flags{
             addr: String::from(matches.value_of("addr").unwrap_or("localhost:53")),
             host: parse_arg!("host", "")?,
@@ -103,8 +103,8 @@ impl Flags {
             remote_host: parse_arg!("remote-host", "127.0.0.1")?,
             remote_port: parse_arg!("remote-port", "22")?,
             listen_port: parse_arg!("listen-port", "2222")?,
-            query_min_time: Duration::new(0, min_time * 1000000),
-            query_max_time: Duration::new(0, max_time * 1000000)
+            query_min_time: Duration::new((min_time / 1000), ((min_time % 1000) * 1000000) as u32),
+            query_max_time: Duration::new((max_time / 1000), ((max_time % 1000) * 1000000) as u32),
         })
     }
 }
