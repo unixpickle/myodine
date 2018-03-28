@@ -5,6 +5,7 @@ use std::net::{Shutdown, TcpStream};
 use std::sync::mpsc::{SyncSender, Receiver, TrySendError, sync_channel};
 use std::thread::spawn;
 
+/// A TCP connection that reads and writes data in chunks.
 pub struct TcpChunker {
     stream: TcpStream,
     incoming: Receiver<Vec<u8>>,
@@ -13,8 +14,20 @@ pub struct TcpChunker {
 }
 
 impl TcpChunker {
-    pub fn new(stream: TcpStream, recv_mtu: usize, in_buf: usize, out_buf: usize)
-        -> io::Result<TcpChunker> {
+    /// Create a new TCP chunker.
+    ///
+    /// # Arguments
+    ///
+    /// * `stream` - A TCP stream to wrap.
+    /// * `recv_mtu` - The maximum incoming chunk size.
+    /// * `in_buf` - The number of incoming chunks to buffer.
+    /// * `out_buf` - The number of outgoing chunks to buffer.
+    pub fn new(
+        stream: TcpStream,
+        recv_mtu: usize,
+        in_buf: usize,
+        out_buf: usize
+    ) -> io::Result<TcpChunker> {
         let (in_sender, in_receiver) = sync_channel(in_buf);
         let (out_sender, out_receiver) = sync_channel(out_buf);
         let clone1 = stream.try_clone()?;
@@ -35,6 +48,10 @@ impl TcpChunker {
         })
     }
 
+    /// Check if there is room in the send buffer.
+    ///
+    /// If this returns false, it means that the source of data should apply
+    /// backpressure.
     pub fn can_send(&mut self) -> bool {
         if self.outgoing.is_none() {
             return false;
@@ -48,6 +65,9 @@ impl TcpChunker {
         }
     }
 
+    /// Send a chunk of data to the remote end.
+    ///
+    /// Before calling this, you should check can_send().
     pub fn send(&mut self, chunk: Vec<u8>) {
         assert!(self.outgoing.is_some());
         assert!(self.buffer_chunk.is_none());
@@ -57,6 +77,10 @@ impl TcpChunker {
         }
     }
 
+    /// Send an EOF to the remote end.
+    ///
+    /// After calling this, you should not call send() again.
+    /// This should be fine, since can_send() will return false.
     pub fn send_finished(&mut self) {
         assert!(self.outgoing.is_some());
         if let Some(data) = replace(&mut self.buffer_chunk, None) {
@@ -69,6 +93,10 @@ impl TcpChunker {
         }
     }
 
+    /// Receive the next chunk if one is available.
+    ///
+    /// If no new chunks are available, None is returned.
+    /// An empty chunk represents EOF.
     pub fn recv(&mut self) -> Option<Vec<u8>> {
         self.incoming.try_recv().ok()
     }
@@ -105,6 +133,7 @@ impl TcpChunker {
 
 impl Drop for TcpChunker {
     fn drop(&mut self) {
+        // Force the read loop to die.
         self.stream.shutdown(Shutdown::Read).ok();
     }
 }

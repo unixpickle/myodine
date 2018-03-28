@@ -2,6 +2,8 @@ use myodine::dns_proto::{Domain, RecordType};
 use myodine::myo_proto::name_code::{NameCode, get_name_code};
 use myodine::myo_proto::record_code::{RecordCode, get_record_code};
 
+/// Information about the optimal transport parameters
+/// supported by a server.
 pub struct Features {
     pub record_type: RecordType,
     pub response_encoding: String,
@@ -12,6 +14,8 @@ pub struct Features {
     pub record_code: Box<RecordCode>
 }
 
+/// Figure out the optimal transport parameters that the
+/// server supports.
 pub fn discover_features(_address: &str, _host: &Domain) -> Result<Features, String> {
     // TODO: perform feature discovery here.
     Ok(Features{

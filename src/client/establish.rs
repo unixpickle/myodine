@@ -11,6 +11,7 @@ use myodine::myo_proto::record_code::RecordCode;
 use discovery::Features;
 use flags::Flags;
 
+/// Information about an established session.
 pub struct Establishment {
     pub name_code: Box<NameCode>,
     pub record_code: Box<RecordCode>,
@@ -23,6 +24,7 @@ pub struct Establishment {
     pub response_window: u16
 }
 
+/// Open a new session.
 pub fn establish(flags: &Flags, features: Features) -> Result<Establishment, String> {
     let epoch = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
     let query = EstablishQuery{

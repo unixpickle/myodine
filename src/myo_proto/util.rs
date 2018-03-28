@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use dns_proto::{Domain, Message};
 
+/// Check if the DNS message is a valid API call that starts with a prefix.
 pub fn is_api_query(m: &Message, prefix_char: char) -> bool {
     let is_query = !m.header.is_response &&
         m.questions.len() == 1 &&
@@ -18,6 +19,7 @@ pub fn is_api_query(m: &Message, prefix_char: char) -> bool {
     return false;
 }
 
+/// Check if the domain ends with another domain, in a case-insensitive way.
 pub fn domain_ends_with(domain: &Domain, suffix: &Domain) -> bool {
     if domain.parts().len() < suffix.parts().len() {
         return false;
@@ -31,10 +33,12 @@ pub fn domain_ends_with(domain: &Domain, suffix: &Domain) -> bool {
     true
 }
 
+/// Compare two domain labels in a case-insensitive way.
 pub fn domain_part_equal(x: &str, y: &str) -> bool {
     return domain_part_lowercase(x) == domain_part_lowercase(y);
 }
 
+/// Convert a domain label to lowercase.
 pub fn domain_part_lowercase(x: &str) -> String {
     let mut res = String::new();
     for ch in x.as_bytes() {

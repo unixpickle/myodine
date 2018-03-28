@@ -7,13 +7,23 @@ use dns_proto::{Domain, Message, Record, RecordHeader};
 use super::record_code::{get_record_code};
 use super::util::{is_api_query, domain_ends_with};
 
+/// Check if a DNS message is an establishment API call.
 pub fn is_establish_query(query: &Message) -> bool {
     is_api_query(query, 'e')
 }
 
-pub fn establish_response(query: &Message, host: &Domain, resp: EstablishResponse)
-    -> Result<Message, String>
-{
+/// Produce a response message for an establishment request.
+///
+/// # Arguments
+///
+/// * `query` - The query to respond to.
+/// * `host` - The root domain name of the server.
+/// * `resp` - The response to encode.
+pub fn establish_response(
+    query: &Message,
+    host: &Domain,
+    resp: EstablishResponse
+) -> Result<Message, String> {
     let equery = EstablishQuery::from_query(query, host)?;
     let question = &query.questions[0];
     let code = get_record_code(question.record_type, &equery.response_encoding)
@@ -34,6 +44,8 @@ pub fn establish_response(query: &Message, host: &Domain, resp: EstablishRespons
     Ok(result)
 }
 
+/// Produce proof that we know the given password, using the current epoch
+/// time in seconds.
 pub fn password_proof(password: &str, cur_time: u64) -> u64 {
     let mut sh = Sha1::new();
     sh.update(format!("{}{}{}", password, cur_time, password).as_bytes());
@@ -43,6 +55,7 @@ pub fn password_proof(password: &str, cur_time: u64) -> u64 {
         ((hash[6] as u64) << 8) | (hash[7] as u64)
 }
 
+/// The contents of an establishment query.
 pub struct EstablishQuery {
     pub response_encoding: String,
     pub mtu: u16,
@@ -55,6 +68,12 @@ pub struct EstablishQuery {
 }
 
 impl EstablishQuery {
+    /// Decode an establishment query.
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - The query to decode.
+    /// * `host` - The root domain name of the server.
     pub fn from_query(query: &Message, host: &Domain) -> Result<EstablishQuery, String> {
         if !is_establish_query(query) {
             return Err(String::from("not an establish query"));
@@ -62,7 +81,7 @@ impl EstablishQuery {
         EstablishQuery::from_domain(&query.questions[0].domain, host)
     }
 
-    pub fn from_domain(domain: &Domain, host: &Domain) -> Result<EstablishQuery, String> {
+    fn from_domain(domain: &Domain, host: &Domain) -> Result<EstablishQuery, String> {
         if !domain_ends_with(domain, host) {
             return Err(String::from("incorrect host domain"));
         }
@@ -94,6 +113,8 @@ impl EstablishQuery {
         }
     }
 
+    /// Encode the request into a domain name, given the root domain name of the
+    /// server, `host`.
     pub fn to_domain(&self, host: &Domain) -> Result<Domain, String> {
         let mut parts = Vec::new();
         parts.push(format!("e{}", self.response_encoding));
@@ -108,6 +129,14 @@ impl EstablishQuery {
         Domain::from_parts(parts)
     }
 
+    /// Check the password proof in the query.
+    ///
+    /// # Arguments
+    ///
+    /// * `password` - The correct password.
+    /// * `cur_time` - The current epoch time, in seconds.
+    /// * `window` - The number of seconds by which the client's clock is allowed
+    ///   to be off from `cur_time`. The higher this value, the slower the check.
     pub fn check_proof(&self, password: &str, cur_time: u64, window: u64) -> bool {
         for i in (cur_time - window)..(cur_time + window) {
             if self.proof == password_proof(password, i) {
@@ -118,6 +147,7 @@ impl EstablishQuery {
     }
 }
 
+/// A response to an establishment query.
 pub enum EstablishResponse {
     Success{id: u16, seq: u32},
     Failure(String),

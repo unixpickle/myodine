@@ -10,6 +10,7 @@ use dns_proto::Message;
 
 use super::dial_udp;
 
+/// An event from a `Highway`.
 pub enum Event {
     Response(usize, Message),
     Timeout(usize),
@@ -18,11 +19,20 @@ pub enum Event {
     SocketError(usize, io::Error)
 }
 
+/// A batch of open UDP sockets, each called "lanes".
 pub struct Highway {
     senders: Vec<Sender<(Message, Duration, Duration)>>
 }
 
 impl Highway {
+    /// Create a new Highway and connect it to a remote address.
+    ///
+    /// # Arguments
+    ///
+    /// * `remote_addr`: An "IP:port" pair.
+    /// * `lanes`: The number of connections.
+    ///
+    /// Returns the new Highway and its corresponding event loop.
     pub fn open(remote_addr: &str, lanes: usize) -> (Highway, Receiver<Event>) {
         let (event_sender, event_receiver) = channel();
         let mut senders = Vec::new();
@@ -39,10 +49,19 @@ impl Highway {
         (Highway{senders: senders}, event_receiver)
     }
 
+    /// Get the number of concurrent connections.
     pub fn num_lanes(&self) -> usize {
         self.senders.len()
     }
 
+    /// Send a DNS message to the specified connection.
+    ///
+    /// # Arguments
+    ///
+    /// * `lane`: The connection to use. This lane should not be busy.
+    /// * `message`: The message to send on the lane.
+    /// * `min_time`: The minimum time to wait before yielding a response.
+    /// * `max_time`: The maximum time before a `Timeout` event.
     pub fn send(&self, lane: usize, message: Message, min_time: Duration, max_time: Duration) {
         self.senders[lane].send((message, min_time, max_time)).ok();
     }

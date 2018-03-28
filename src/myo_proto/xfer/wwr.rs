@@ -2,6 +2,7 @@ use std::num::Wrapping;
 
 use super::{Ack, Chunk};
 
+/// A finite state machine representing an endpoint's view of a WWR session.
 pub struct WwrState {
     in_win_size: u16,
     in_win_start: u32,
@@ -17,6 +18,13 @@ pub struct WwrState {
 }
 
 impl WwrState {
+    /// Create a `WwrState` given some initial conditions.
+    ///
+    /// # Arguments
+    ///
+    /// * `in_win_size` - The other end's outgoing window size.
+    /// * `out_win_size` - Our outgoing window size.
+    /// * `seq_start` - The initial sequence number for both directions.
     pub fn new(in_win_size: u16, out_win_size: u16, seq_start: u32) -> WwrState {
         WwrState{
             in_win_size: in_win_size,
@@ -33,10 +41,12 @@ impl WwrState {
         }
     }
 
+    /// Check if both the incoming and outgoing streams have EOF'd.
     pub fn is_done(&self) -> bool {
         self.in_eof && self.out_eof
     }
 
+    /// Get the current acknowledgement packet.
     pub fn next_send_ack(&self) -> Ack {
         let mut bit_mask = Vec::new();
         for _ in 0..(self.in_win_size - 1) {
@@ -50,6 +60,12 @@ impl WwrState {
         Ack{window_start: self.in_win_start, window_mask: bit_mask}
     }
 
+    /// Get a chunk to send in the next packet.
+    ///
+    /// This should only be called once per packet, since it cycles through
+    /// the unacknowledged chunks in order to prevent starvation.
+    ///
+    /// If there are no chunks to send, this returns None.
     pub fn next_send_chunk(&mut self) -> Option<Chunk> {
         if self.out_pending.is_empty() {
             return None;
@@ -62,19 +78,30 @@ impl WwrState {
         Some(chunk)
     }
 
+    /// Get the number of chunks that can be pushed by `push_send_buffer`.
     pub fn send_buffer_space(&self) -> usize {
         let win_used = (Wrapping(self.out_next_seq) - Wrapping(self.out_win_start)).0;
         assert!((win_used as usize) <= (self.out_win_size as usize));
         (self.out_win_size as usize) - (win_used as usize)
     }
 
+    /// Add an outgoing chunk to the end of the outgoing data stream.
+    ///
+    /// You should check `send_buffer_space` before calling this.
+    /// You should not call this after calling `push_eof`.
+    /// You should not pass an empty chunk.
     pub fn push_send_buffer(&mut self, data: Vec<u8>) {
         assert!(!self.out_eof);
+        assert!(self.send_buffer_space() > 0);
         let chunk = Chunk{seq: self.out_next_seq, data: data};
         self.out_next_seq = (Wrapping(self.out_next_seq) + Wrapping(1)).0;
         self.out_pending.push(chunk);
     }
 
+    /// Push an EOF to the end of the outgoing data stream.
+    ///
+    /// You should check `send_buffer_space` before calling this.
+    /// You may call this multiple times; it is idempotent.
     pub fn push_eof(&mut self) {
         if self.out_eof {
             return;
@@ -83,6 +110,7 @@ impl WwrState {
         self.out_eof = true;
     }
 
+    /// Handle an acknowledgement from the remote end.
     pub fn handle_ack(&mut self, ack: &Ack) {
         if ack.window_start == self.out_next_seq {
             self.out_pending.clear();
@@ -107,6 +135,14 @@ impl WwrState {
         }
     }
 
+    /// Handle an incoming chunk from the remote end.
+    ///
+    /// Returns all of the chunks which can now be processed.
+    /// The returned chunks are guaranteed to be in order, starting at the
+    /// beginning of the current incoming window.
+    ///
+    /// If an empty chunk is included in the result, it is the last chunk and
+    /// signals an EOF.
     pub fn handle_chunk(&mut self, chunk: Chunk) -> Vec<Chunk> {
         if self.in_eof {
             return Vec::new();

@@ -8,14 +8,17 @@ use super::util::is_api_query;
 extern crate sha1;
 use self::sha1::Sha1;
 
+/// Check if a DNS message is a domain hash API call.
 pub fn is_domain_hash_query(query: &Message) -> bool {
     is_discovery_query(query) && query.questions[0].record_type == RecordType::A
 }
 
+/// Check if a DNS message is a download generation API call.
 pub fn is_download_gen_query(query: &Message) -> bool {
     is_discovery_query(query) && query.questions[0].record_type == RecordType::TXT
 }
 
+/// Produce a response message for a domain hash query.
 pub fn domain_hash_response(query: &Message) -> Result<Message, String> {
     if !is_domain_hash_query(query) {
         return Err(String::from("not a domain hash query"));
@@ -37,6 +40,7 @@ pub fn domain_hash_response(query: &Message) -> Result<Message, String> {
     Ok(result)
 }
 
+/// Produce a response message for a download generation query.
 pub fn download_gen_response(query: &Message) -> Result<Message, String> {
     if !is_download_gen_query(query) {
         return Err(String::from("not a download generation query"));
@@ -61,6 +65,7 @@ pub fn download_gen_response(query: &Message) -> Result<Message, String> {
     Ok(result)
 }
 
+/// Generate the domain hash according to the myodine spec.
 pub fn domain_hash(domain: &Domain) -> Ipv4Addr {
     let mut sh = Sha1::new();
     sh.update(format!("{}", domain).as_bytes());
@@ -68,6 +73,7 @@ pub fn domain_hash(domain: &Domain) -> Ipv4Addr {
     Ipv4Addr::new(data[0], data[1], data[2], data[3])
 }
 
+/// The contents of a DownloadGenQuery.
 pub struct DownloadGenQuery {
     pub encoding: String,
     pub len: u16,
@@ -77,6 +83,7 @@ pub struct DownloadGenQuery {
 }
 
 impl DownloadGenQuery {
+    /// Decode a `DownloadGenQuery` from a requested domain.
     pub fn from_domain(domain: &Domain) -> Result<DownloadGenQuery, String> {
         if domain.parts().len() < 5 {
             return Err(String::from("not enough domain parts"));
@@ -100,6 +107,7 @@ impl DownloadGenQuery {
         }
     }
 
+    /// Generate the data requested by the query.
     pub fn generated_data(&self) -> Vec<u8> {
         let mut result = Vec::new();
         for i in 0..self.len {
@@ -110,6 +118,13 @@ impl DownloadGenQuery {
         result
     }
 
+    /// Encode the query to a domain name.
+    ///
+    /// # Arguments
+    ///
+    /// * `host` - The root domain name of the server.
+    /// * `pad_to_len` - The total number of bytes for the encoded domain name
+    ///   to consume. Maximum value is 255.
     pub fn to_domain(&self, host: &Domain, pad_to_len: usize) -> Result<Domain, String> {
         let mut parts = Vec::new();
         parts.push(format!("f{}", self.encoding));

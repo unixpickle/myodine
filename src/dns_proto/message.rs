@@ -20,6 +20,7 @@ pub struct Message {
 }
 
 impl Message {
+    /// Create a new recursive query containing the given question section.
     pub fn new_query(q: Question) -> Message {
         Message{
             header: Header{

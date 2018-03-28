@@ -1,6 +1,7 @@
 use dns_coding::{DecPacket, Decoder, EncPacket, Encoder};
 use dns_proto::{RecordBody, RecordType};
 
+/// Lookup the RecordCode for the given record type and code identifier.
 pub fn get_record_code(record_type: RecordType, name: &str) -> Option<Box<RecordCode>> {
     match record_type {
         RecordType::TXT => {
@@ -14,11 +15,16 @@ pub fn get_record_code(record_type: RecordType, name: &str) -> Option<Box<Record
     }
 }
 
+/// A method of encoding raw data in DNS records.
 pub trait RecordCode {
+    /// Encode the data into a record.
     fn encode_body(&self, data: &[u8]) -> Result<RecordBody, String>;
+
+    /// Decode the data from a record.
     fn decode_body(&self, body: &RecordBody) -> Result<Vec<u8>, String>;
 }
 
+/// A RecordCode that puts raw data into TXT records.
 pub struct RawTxtCode;
 
 impl RecordCode for RawTxtCode {

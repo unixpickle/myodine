@@ -4,6 +4,7 @@ use dns_proto::Domain;
 
 use super::util::domain_ends_with;
 
+/// Lookup the NameCode for the given identifier.
 pub fn get_name_code(name: &str) -> Option<Box<NameCode>> {
     match name {
         "b16" => Some(Box::new(HexNameCode{})),
@@ -11,13 +12,29 @@ pub fn get_name_code(name: &str) -> Option<Box<NameCode>> {
     }
 }
 
+/// A method of encoding raw data in DNS names.
 pub trait NameCode {
+    /// Encode the raw data as domain name labels.
     fn encode_parts(&self, data: &[u8]) -> Result<Vec<String>, String>;
+
+    /// Decode the raw data from domain name labels.
     fn decode_parts(&self, parts: &[String]) -> Result<Vec<u8>, String>;
 
-    fn encode_domain(&self, api_flag: char, sess_id: u16, data: &[u8], host: &Domain)
-        -> Result<Domain, String>
-    {
+    /// Encode the data into the full `Domain` for a transfer query.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_flag` - A character that specifies the kind of transfer packet.
+    /// * `sess_id` - The session ID corresponding to the transfer packet.
+    /// * `data` - The raw data to encode.
+    /// * `host` - The root domain name of the server.
+    fn encode_domain(
+        &self,
+        api_flag: char,
+        sess_id: u16,
+        data: &[u8],
+        host: &Domain
+    ) -> Result<Domain, String> {
         let mut parts = Vec::new();
         parts.push(format!("{}{}", api_flag, sess_id));
         parts.extend(self.encode_parts(data)?);
@@ -25,6 +42,16 @@ pub trait NameCode {
         Domain::from_parts(parts)
     }
 
+    /// Decode the data from a transfer query's domain name.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The full query domain name.
+    /// * `host` - The root domain name of the server.
+    ///
+    /// # Returns
+    ///
+    /// A tuple of the form (api_code, session_id, data).
     fn decode_domain(&self, name: &Domain, host: &Domain) -> Result<(char, u16, Vec<u8>), String> {
         if !domain_ends_with(name, host) {
             Err(String::from("incorrect host domain"))
@@ -44,6 +71,7 @@ pub trait NameCode {
     }
 }
 
+/// A NameCode that uses hexadecimal.
 pub struct HexNameCode;
 
 impl NameCode for HexNameCode {

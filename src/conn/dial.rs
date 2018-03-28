@@ -2,6 +2,9 @@ use std::io;
 use std::io::ErrorKind;
 use std::net::{Ipv4Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 
+/// Create a UDP socket and connect to an address.
+///
+/// The address should parse into an "IP:port" pair.
 pub fn dial_udp(addr: &str) -> io::Result<UdpSocket> {
     let sock = UdpSocket::bind(OutgoingAddrRange{})?;
     let remote = addr.parse::<SocketAddr>()

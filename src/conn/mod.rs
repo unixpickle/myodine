@@ -1,3 +1,5 @@
+//! APIs for managing UDP and DNS connections.
+
 mod chunker;
 mod dial;
 mod highway;

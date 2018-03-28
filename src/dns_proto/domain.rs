@@ -3,10 +3,14 @@ use std::str::FromStr;
 
 use dns_coding::{Decoder, DecPacket, Encoder, EncPacket};
 
+/// A DNS domain name.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Domain(Vec<String>);
 
 impl Domain {
+    /// Create a domain name from the labels.
+    ///
+    /// This may fail if the requested domain name is invalid.
     pub fn from_parts(labels: Vec<String>) -> Result<Domain, String> {
         let mut total_len = 1usize;
         for label in &labels {
@@ -35,6 +39,7 @@ impl Domain {
         Ok(Domain(labels))
     }
 
+    /// Get the name's labels.
     pub fn parts(&self) -> &[String] {
         &self.0
     }

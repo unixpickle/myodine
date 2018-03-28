@@ -1,3 +1,5 @@
+//! A system for proxying a virtual circuit over DNS.
+
 #[macro_use]
 pub mod dns_coding;
 

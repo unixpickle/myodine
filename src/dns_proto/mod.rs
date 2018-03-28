@@ -1,3 +1,5 @@
+//! Types for representing DNS messages.
+
 mod domain;
 mod header;
 mod record;

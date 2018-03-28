@@ -8,6 +8,7 @@ use myodine::myo_proto::name_code::{NameCode, get_name_code};
 use myodine::myo_proto::record_code::{RecordCode, get_record_code};
 use myodine::myo_proto::xfer::{Packet, WwrState, handle_packet_in, next_packet_out};
 
+/// The state of a single session.
 pub struct Session {
     id: u16,
     last_used: Instant,
@@ -19,6 +20,7 @@ pub struct Session {
 }
 
 impl Session {
+    /// Establish a new session.
     pub fn new(
         id: u16,
         seq_start: u32,
@@ -47,14 +49,22 @@ impl Session {
         })
     }
 
+    /// Get this session's ID.
     pub fn session_id(&self) -> u16 {
         self.id
     }
 
+    /// Check if the session is done or timed out.
     pub fn is_done(&self, timeout: Duration) -> bool {
         self.state.is_done() || Instant::now() - self.last_used > timeout
     }
 
+    /// Handle a message that was directed to the session.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The message that was received.
+    /// * `host` - The root domain name of the server.
     pub fn handle_message(&mut self, message: Message, host: &Domain) -> Result<Message, String> {
         let (api, _, data) = self.name_code.decode_domain(&message.questions[0].domain, host)?;
         let in_packet = Packet::decode_query(&data, self.response_window, api)?;

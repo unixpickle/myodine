@@ -1,3 +1,5 @@
+//! APIs for implementing the myodine data transfer protocol.
+
 mod types;
 mod wwr;
 mod messages;

@@ -9,16 +9,19 @@ use myodine::dns_proto::{Message, ResponseCode};
 use flags::Flags;
 use session::Session;
 
+/// A stateful server.
 pub struct Server {
     flags: Flags,
     sessions: Vec<Session>
 }
 
 impl Server {
+    /// Create a new server with the configuration flags.
     pub fn new(flags: Flags) -> Server {
         Server{flags: flags, sessions: Vec::new()}
     }
 
+    /// Remove all closed or timed-out sessions.
     pub fn garbage_collect(&mut self) {
         for i in (0..self.sessions.len()).into_iter().rev() {
             if self.sessions[i].is_done(self.flags.session_timeout) {
@@ -27,6 +30,9 @@ impl Server {
         }
     }
 
+    /// Serve the API for the incoming message.
+    ///
+    /// This should not block for very long.
     pub fn handle_message(&mut self, message: Message) -> Result<Message, String> {
         if discovery::is_domain_hash_query(&message) {
             return discovery::domain_hash_response(&message);
@@ -46,7 +52,8 @@ impl Server {
         Ok(response)
     }
 
-    pub fn handle_establish(&mut self, message: Message) -> Result<Message, String> {
+    fn handle_establish(&mut self, message: Message) -> Result<Message, String> {
+        // TODO: less nesting here.
         let query = establish::EstablishQuery::from_query(&message, &self.flags.host)?;
         let epoch = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         let response = if query.check_proof(&self.flags.password, epoch, self.flags.proof_window) {

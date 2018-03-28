@@ -1,3 +1,5 @@
+//! APIs for serializing binary data.
+
 #[macro_use]
 mod encoding;
 mod decoding;
