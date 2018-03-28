@@ -39,7 +39,11 @@ fn main_or_err() -> Result<(), String> {
             continue;
         }
         let (size, sender_addr) = result.unwrap();
-        if let Ok(message) = dns_decode::<Message>(buf[0..size].to_vec()) {
+        if let Ok(mut message) = dns_decode::<Message>(buf[0..size].to_vec()) {
+            if message.additional.len() > 0 {
+                message.additional.clear();
+                message.header.additional_count = 0;
+            }
             match server.handle_message(message) {
                 Ok(response) => match dns_encode(&response) {
                     Ok(out_buf) => {
