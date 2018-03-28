@@ -25,7 +25,7 @@ pub struct Packet {
 impl Ack {
     pub fn decode(packet: &mut DecPacket, window_size: u16) -> Result<Ack, String> {
         let window_start = Decoder::dns_decode(packet)?;
-        let num_bits = (window_size as usize) * 8 - 1;
+        let num_bits = (window_size as usize) - 1;
         let num_bytes = if num_bits % 8 != 0 {
             num_bits / 8 + 1
         } else {
