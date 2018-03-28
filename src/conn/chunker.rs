@@ -67,7 +67,7 @@ impl TcpChunker {
     }
 
     pub fn recv(&mut self) -> Option<Vec<u8>> {
-        self.incoming.recv().ok()
+        self.incoming.try_recv().ok()
     }
 
     fn write_loop(channel: Receiver<Vec<u8>>, mut stream: TcpStream) {
