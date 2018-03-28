@@ -14,7 +14,7 @@ use std::thread::spawn;
 use flags::Flags;
 use discovery::discover_features;
 use establish::establish;
-use session::Session;
+use session::run_session;
 
 fn main() {
     if let Err(msg) = main_or_err() {
@@ -63,9 +63,6 @@ fn handle_connection(flags: Flags, conn: TcpStream, log: &Sender<String>) -> Res
 
     log.send(String::from("establishing session...")).unwrap();
     let establishment = establish(&flags, features)?;
-    log.send(String::from("creating session...")).unwrap();
-    let mut session = Session::new(flags, conn, establishment)
-        .map_err(|e| format!("failed to create session: {}", e))?;
     log.send(String::from("running session...")).unwrap();
-    session.run(log)
+    run_session(flags, conn, establishment, log)
 }

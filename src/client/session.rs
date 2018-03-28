@@ -1,5 +1,3 @@
-use std::io;
-use std::mem::replace;
 use std::net::TcpStream;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
@@ -11,11 +9,35 @@ use myodine::myo_proto::xfer::{Packet, WwrState, handle_packet_in, next_packet_o
 use flags::Flags;
 use establish::Establishment;
 
-pub struct Session {
+pub fn run_session(
+    flags: Flags,
+    conn: TcpStream,
+    info: Establishment,
+    log: &Sender<String>
+) -> Result<(), String> {
+    let (highway, events) = Highway::open(&flags.addr, flags.concurrency);
+    let conn = TcpChunker::new(
+        conn,
+        info.query_mtu as usize,
+        info.query_window as usize,
+        info.response_window as usize
+    ).map_err(|e| format!("error creating chunker: {}", e))?;
+    let mut session = Session{
+        highway: highway,
+        state: WwrState::new(info.response_window, info.query_window, info.seq_start),
+        conn: conn,
+        info: info,
+        host: flags.host,
+        query_min_time: flags.query_min_time,
+        query_max_time: flags.query_max_time
+    };
+    session.run(log, events)
+}
+
+struct Session {
     highway: Highway,
     state: WwrState,
     conn: TcpChunker,
-    events: Option<Receiver<Event>>,
     info: Establishment,
     host: Domain,
     query_min_time: Duration,
@@ -23,28 +45,11 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(flags: Flags, conn: TcpStream, info: Establishment) -> io::Result<Session>
-    {
-        let (highway, events) = Highway::open(&flags.addr, flags.concurrency);
-        let conn = TcpChunker::new(conn, info.query_mtu as usize, info.query_window as usize,
-                info.response_window as usize)?;
-        Ok(Session{
-            highway: highway,
-            state: WwrState::new(info.response_window, info.query_window, info.seq_start),
-            conn: conn,
-            events: Some(events),
-            info: info,
-            host: flags.host,
-            query_min_time: flags.query_min_time,
-            query_max_time: flags.query_max_time
-        })
-    }
-
-    pub fn run(&mut self, log: &Sender<String>) -> Result<(), String> {
+    pub fn run(&mut self, log: &Sender<String>, events: Receiver<Event>) -> Result<(), String> {
         for lane in 0..self.highway.num_lanes() {
             self.populate_lane(lane)?;
         }
-        for event in replace(&mut self.events, None).unwrap() {
+        for event in events {
             match event {
                 Event::Response(lane, msg) => {
                     self.handle_message(msg);
