@@ -56,7 +56,7 @@ impl WwrState {
 
     pub fn send_buffer_space(&self) -> usize {
         let win_used = (Wrapping(self.out_next_seq) - Wrapping(self.out_win_start)).0;
-        assert!((win_used as usize) < (self.out_win_size as usize));
+        assert!((win_used as usize) <= (self.out_win_size as usize));
         (self.out_win_size as usize) - (win_used as usize)
     }
 

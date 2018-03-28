@@ -64,7 +64,7 @@ impl NameCode for HexNameCode {
         }
         let mut data = Vec::new();
         for i in 0..(bytes.len() / 2) {
-            let (c1, c2) = (bytes[1 + i*2] as char, bytes[i*2 + 2] as char);
+            let (c1, c2) = (bytes[i*2] as char, bytes[i*2 + 1] as char);
             if let Ok(res) = u8::from_str_radix(&format!("{}{}", c1, c2), 16) {
                 data.push(res);
             } else {
