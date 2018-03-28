@@ -45,6 +45,8 @@ fn main_or_err() -> Result<(), String> {
         spawn(move || {
             if let Err(msg) = handle_connection(local_flags, conn, &local_logger) {
                 local_logger.send(format!("error for {}: {}", addr, msg)).unwrap();
+            } else {
+                local_logger.send(format!("session ended for {}", addr)).unwrap();
             }
         });
     }
