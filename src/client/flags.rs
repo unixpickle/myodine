@@ -15,7 +15,8 @@ pub struct Flags {
     pub remote_host: Domain,
     pub remote_port: u16,
     pub listen_port: u16,
-    pub query_timeout: Duration
+    pub query_min_time: Duration,
+    pub query_max_time: Duration
 }
 
 impl Flags {
@@ -63,11 +64,15 @@ impl Flags {
                 .value_name("VALUE")
                 .help("Set the server password")
                 .takes_value(true))
-            .arg(Arg::with_name("query-timeout")
-                .short("T")
-                .long("query-timeout")
+            .arg(Arg::with_name("query-max-time")
+                .long("query-max-time")
                 .value_name("INT")
-                .help("Set the query timeout in seconds")
+                .help("Set the query timeout in milliseconds")
+                .takes_value(true))
+            .arg(Arg::with_name("query-min-time")
+                .long("query-min-time")
+                .value_name("INT")
+                .help("Set the minimum query delay in milliseconds")
                 .takes_value(true))
             .arg(Arg::with_name("addr")
                 .help("Set the address of the proxy")
@@ -86,6 +91,8 @@ impl Flags {
             }
         }
 
+        let min_time: u32 = parse_arg!("query-min-time", "50")?;
+        let max_time: u32 = parse_arg!("query-max-time", "50")?;
         Ok(Flags{
             addr: String::from(matches.value_of("addr").unwrap_or("localhost:53")),
             host: parse_arg!("host", "")?,
@@ -96,7 +103,8 @@ impl Flags {
             remote_host: parse_arg!("remote-host", "127.0.0.1")?,
             remote_port: parse_arg!("remote-port", "22")?,
             listen_port: parse_arg!("listen-port", "2222")?,
-            query_timeout: Duration::new(parse_arg!("query-timeout", "5")?, 0)
+            query_min_time: Duration::new(0, min_time * 1000000),
+            query_max_time: Duration::new(0, max_time * 1000000)
         })
     }
 }

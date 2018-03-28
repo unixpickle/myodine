@@ -18,7 +18,8 @@ pub struct Session {
     events: Option<Receiver<Event>>,
     info: Establishment,
     host: Domain,
-    query_timeout: Duration
+    query_min_time: Duration,
+    query_max_time: Duration
 }
 
 impl Session {
@@ -34,7 +35,8 @@ impl Session {
             events: Some(events),
             info: info,
             host: flags.host,
-            query_timeout: flags.query_timeout
+            query_min_time: flags.query_min_time,
+            query_max_time: flags.query_max_time
         })
     }
 
@@ -92,7 +94,7 @@ impl Session {
             record_type: self.info.record_type,
             record_class: RecordClass::IN
         });
-        self.highway.send(lane, message, self.query_timeout.clone());
+        self.highway.send(lane, message, self.query_min_time, self.query_max_time);
         Ok(())
     }
 }

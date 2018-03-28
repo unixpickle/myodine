@@ -2,7 +2,7 @@ use std::io;
 use std::net::UdpSocket;
 use std::num::Wrapping;
 use std::sync::mpsc::{Sender, Receiver, channel};
-use std::thread::spawn;
+use std::thread::{sleep, spawn};
 use std::time::{Duration, Instant};
 
 use dns_coding::{dns_decode, dns_encode};
@@ -19,7 +19,7 @@ pub enum Event {
 }
 
 pub struct Highway {
-    senders: Vec<Sender<(Message, Duration)>>
+    senders: Vec<Sender<(Message, Duration, Duration)>>
 }
 
 impl Highway {
@@ -43,13 +43,13 @@ impl Highway {
         self.senders.len()
     }
 
-    pub fn send(&self, lane: usize, message: Message, timeout: Duration) {
-        self.senders[lane].send((message, timeout)).ok();
+    pub fn send(&self, lane: usize, message: Message, min_time: Duration, max_time: Duration) {
+        self.senders[lane].send((message, min_time, max_time)).ok();
     }
 
     fn run_lane(
         lane: usize,
-        receiver: Receiver<(Message, Duration)>,
+        receiver: Receiver<(Message, Duration, Duration)>,
         addr: String,
         event_sender: Sender<Event>
     ) {
@@ -77,12 +77,12 @@ struct HighwayLane {
 }
 
 impl HighwayLane {
-    fn run_loop(&mut self, receiver: Receiver<(Message, Duration)>) {
-        for (mut message, timeout) in receiver {
+    fn run_loop(&mut self, receiver: Receiver<(Message, Duration, Duration)>) {
+        for (mut message, min_time, max_time) in receiver {
             let send_res = if let Err(err) = self.send_message(message) {
                 self.send_event(Event::SendError(self.lane, err))
             } else {
-                match self.recv_response(timeout) {
+                match self.recv_response(min_time, max_time) {
                     Ok(None) => self.send_event(Event::Timeout(self.lane)),
                     Ok(Some(m)) => self.send_event(Event::Response(self.lane, m)),
                     Err(err) => self.send_event(Event::SocketError(self.lane, err))
@@ -103,18 +103,26 @@ impl HighwayLane {
         }
     }
 
-    fn recv_response(&self, timeout: Duration) -> io::Result<Option<Message>> {
+    fn recv_response(
+        &self,
+        min_time: Duration,
+        max_time: Duration
+    ) -> io::Result<Option<Message>> {
         let start = Instant::now();
         loop {
             let elapsed = Instant::now().duration_since(start);
-            if elapsed >= timeout {
+            if elapsed >= max_time {
                 return Ok(None);
             }
-            self.socket.set_read_timeout(Some(timeout - elapsed))?;
+            self.socket.set_read_timeout(Some(max_time - elapsed))?;
             let mut buffer = [0u8; 2048];
             if let Ok(size) = self.socket.recv(&mut buffer) {
                 if let Ok(response) = dns_decode::<Message>(buffer[..size].to_vec()) {
                     if response.header.identifier == self.seq_number {
+                        let passed = Instant::now().duration_since(start);
+                        if passed < min_time {
+                            sleep(min_time - passed);
+                        }
                         return Ok(Some(response));
                     }
                 }
