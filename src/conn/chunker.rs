@@ -64,6 +64,8 @@ impl TcpChunker {
             spawn(|| {
                 ch.unwrap().send(data).ok();
             });
+        } else {
+            self.outgoing = None;
         }
     }
 
