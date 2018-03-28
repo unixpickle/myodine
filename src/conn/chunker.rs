@@ -112,10 +112,10 @@ impl TcpChunker {
 
     fn read_loop(channel: &SyncSender<Vec<u8>>, mut stream: TcpStream, chunk_size: usize) {
         let mut data = Vec::new();
+        for _ in 0..chunk_size {
+            data.push(0u8);
+        }
         loop {
-            for _ in 0..chunk_size {
-                data.push(0u8);
-            }
             if let Ok(size) = stream.read(&mut data) {
                 if size == 0 {
                     // For some reason, this seems to happen on EOF.
