@@ -34,7 +34,7 @@ impl Domain {
             }
         }
         if total_len > 255 {
-            return Err(format!("domain name is too long"));
+            return Err(format!("domain name is too long: {:?}", &labels));
         }
         Ok(Domain(labels))
     }

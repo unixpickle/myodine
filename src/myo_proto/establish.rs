@@ -56,6 +56,7 @@ pub fn password_proof(password: &str, cur_time: u64) -> u64 {
 }
 
 /// The contents of an establishment query.
+#[derive(Debug)]
 pub struct EstablishQuery {
     pub response_encoding: String,
     pub mtu: u16,
@@ -148,6 +149,7 @@ impl EstablishQuery {
 }
 
 /// A response to an establishment query.
+#[derive(Debug)]
 pub enum EstablishResponse {
     Success{id: u16, seq: u32},
     Failure(String),

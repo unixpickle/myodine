@@ -74,6 +74,7 @@ pub fn domain_hash(domain: &Domain) -> Ipv4Addr {
 }
 
 /// The contents of a DownloadGenQuery.
+#[derive(Debug)]
 pub struct DownloadGenQuery {
     pub encoding: String,
     pub len: u16,
