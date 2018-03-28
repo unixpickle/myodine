@@ -6,12 +6,14 @@ pub struct WwrState {
     in_win_size: u16,
     in_win_start: u32,
     in_received: Vec<Chunk>,
+    in_eof: bool,
 
     out_win_size: u16,
     out_next_seq: u32,
     out_win_start: u32,
     out_pending: Vec<Chunk>,
-    out_round_robin: usize
+    out_round_robin: usize,
+    out_eof: bool
 }
 
 impl WwrState {
@@ -20,13 +22,19 @@ impl WwrState {
             in_win_size: in_win_size,
             in_win_start: seq_start,
             in_received: Vec::new(),
+            in_eof: false,
 
             out_win_size: out_win_size,
             out_next_seq: seq_start,
             out_win_start: seq_start,
             out_pending: Vec::new(),
-            out_round_robin: 0
+            out_round_robin: 0,
+            out_eof: false
         }
+    }
+
+    pub fn is_done(&self) -> bool {
+        self.in_eof && self.out_eof
     }
 
     pub fn next_send_ack(&self) -> Ack {
@@ -61,9 +69,18 @@ impl WwrState {
     }
 
     pub fn push_send_buffer(&mut self, data: Vec<u8>) {
+        assert!(!self.out_eof);
         let chunk = Chunk{seq: self.out_next_seq, data: data};
         self.out_next_seq = (Wrapping(self.out_next_seq) + Wrapping(1)).0;
         self.out_pending.push(chunk);
+    }
+
+    pub fn push_eof(&mut self) {
+        if self.out_eof {
+            return;
+        }
+        self.out_eof = true;
+        self.push_send_buffer(Vec::new());
     }
 
     pub fn handle_ack(&mut self, ack: &Ack) {
@@ -91,6 +108,10 @@ impl WwrState {
     }
 
     pub fn handle_chunk(&mut self, chunk: Chunk) -> Vec<Chunk> {
+        if self.in_eof {
+            return Vec::new();
+        }
+
         let chunk_offset = (Wrapping(chunk.seq) - Wrapping(self.in_win_start)).0;
         if chunk_offset >= self.in_win_size as u32 {
             // Stale chunk or some kind of premature chunk.
@@ -107,9 +128,15 @@ impl WwrState {
             got_chunk = false;
             for i in 0..self.in_received.len() {
                 if self.in_received[i].seq == self.in_win_start {
-                    result.push(self.in_received.swap_remove(i));
+                    let chunk = self.in_received.swap_remove(i);
+                    let is_eof = chunk.data.len() == 0;
+                    result.push(chunk);
                     self.in_win_start += 1;
                     got_chunk = true;
+                    if is_eof {
+                        self.in_eof = true;
+                        return result;
+                    }
                     break;
                 }
             }

@@ -27,7 +27,11 @@ pub fn handle_packet_in(packet: Packet, state: &mut WwrState, conn: &mut TcpChun
 pub fn next_packet_out(state: &mut WwrState, conn: &mut TcpChunker) -> Packet {
     while state.send_buffer_space() > 0 {
         if let Some(data) = conn.recv() {
-            state.push_send_buffer(data);
+            if data.len() > 0 {
+                state.push_send_buffer(data);
+            } else {
+                state.push_eof();
+            }
         } else {
             break;
         }

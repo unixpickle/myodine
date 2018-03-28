@@ -21,7 +21,8 @@ impl TcpChunker {
         let clone2 = stream.try_clone()?;
         // TODO: why is `move` necessary here, but not below?
         spawn(move || {
-            TcpChunker::read_loop(in_sender, clone1, recv_mtu);
+            TcpChunker::read_loop(&in_sender, clone1, recv_mtu);
+            in_sender.send(Vec::new()).ok();
         });
         spawn(|| {
             TcpChunker::write_loop(out_receiver, clone2);
@@ -79,13 +80,17 @@ impl TcpChunker {
         stream.shutdown(Shutdown::Write).ok();
     }
 
-    fn read_loop(channel: SyncSender<Vec<u8>>, mut stream: TcpStream, chunk_size: usize) {
+    fn read_loop(channel: &SyncSender<Vec<u8>>, mut stream: TcpStream, chunk_size: usize) {
         let mut data = Vec::new();
         loop {
             for _ in 0..chunk_size {
                 data.push(0u8);
             }
             if let Ok(size) = stream.read(&mut data) {
+                if size == 0 {
+                    // For some reason, this seems to happen on EOF.
+                    return;
+                }
                 if channel.send(data[0..size].to_vec()).is_err() {
                     return;
                 }
