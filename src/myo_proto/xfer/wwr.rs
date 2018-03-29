@@ -43,7 +43,7 @@ impl WwrState {
 
     /// Check if both the incoming and outgoing streams have EOF'd.
     pub fn is_done(&self) -> bool {
-        self.in_eof && self.out_eof
+        self.in_eof && self.out_eof && self.out_pending.len() == 0
     }
 
     /// Get the current acknowledgement packet.
@@ -112,14 +112,18 @@ impl WwrState {
 
     /// Handle an acknowledgement from the remote end.
     pub fn handle_ack(&mut self, ack: &Ack) {
+        assert_eq!(ack.window_mask.len(), (self.out_win_size - 1) as usize);
+
         if ack.window_start == self.out_next_seq {
             self.out_pending.clear();
             self.out_win_start = self.out_next_seq;
             return;
         }
         let residual = (Wrapping(ack.window_start) - Wrapping(self.out_win_start)).0;
-        if residual > self.out_win_size as u32 {
-            // This is a stale ACK.
+        if residual > (Wrapping(self.out_next_seq) - Wrapping(self.out_win_start)).0 {
+            // This is a stale ACK or an out-of-bounds ACK.
+            // If we didn't check for out-of-bounds ACKs, the sender could move our
+            // out_win_start past our out_next_seq.
             return;
         }
         for i in 0..residual {
@@ -167,7 +171,7 @@ impl WwrState {
                     let chunk = self.in_received.swap_remove(i);
                     let is_eof = chunk.data.len() == 0;
                     result.push(chunk);
-                    self.in_win_start += 1;
+                    self.in_win_start = (Wrapping(self.in_win_start) + Wrapping(1)).0;
                     got_chunk = true;
                     if is_eof {
                         self.in_eof = true;
