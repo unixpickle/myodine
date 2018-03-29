@@ -54,13 +54,8 @@ fn main_or_err() -> Result<(), String> {
 
 fn handle_connection(flags: Flags, conn: TcpStream, log: &Sender<String>) -> Result<(), String> {
     log.send(format!("discovering features @{} for {}...", flags.host, flags.addr)).unwrap();
-    let features = discover_features(&flags.addr, &flags.host);
-    if let &Err(ref err) = &features {
-        log.send(format!("failed to discover features: {}", err)).unwrap();
-        exit(1);
-    }
-    let features = features.unwrap();
-
+    let features = discover_features(&flags)
+        .map_err(|e| format!("failed to discover features: {}", e))?;
     log.send(String::from("establishing session...")).unwrap();
     let establishment = establish(&flags, features)?;
     log.send(String::from("running session...")).unwrap();
