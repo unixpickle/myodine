@@ -54,9 +54,10 @@ impl Session {
         self.id
     }
 
-    /// Check if the session is done or timed out.
+    /// Check if the session is ready to be cleaned up.
     pub fn is_done(&self, timeout: Duration) -> bool {
-        self.state.is_done() || Instant::now() - self.last_used > timeout
+        // For now, don't check self.state.is_done() because of an EOF ack issue.
+        Instant::now() - self.last_used > timeout
     }
 
     /// Handle a message that was directed to the session.

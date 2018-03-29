@@ -25,6 +25,7 @@ impl Server {
     pub fn garbage_collect(&mut self) {
         for i in (0..self.sessions.len()).into_iter().rev() {
             if self.sessions[i].is_done(self.flags.session_timeout) {
+                println!("removing session {}", self.sessions[i].session_id());
                 self.sessions.remove(i);
             }
         }
