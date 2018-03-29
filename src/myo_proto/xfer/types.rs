@@ -5,21 +5,21 @@ use self::rand::distributions::{Range, IndependentSample};
 use dns_coding::{DecPacket, Decoder, EncPacket, Encoder};
 
 /// An acknowledgement of the chunks that have been seen in a window.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Ack {
     pub window_start: u32,
     pub window_mask: Vec<bool>
 }
 
 /// A sequenced chunk of data.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Chunk {
     pub seq: u32,
     pub data: Vec<u8>
 }
 
 /// A WWR communication payload.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Packet {
     pub ack: Ack,
     pub chunk: Option<Chunk>
