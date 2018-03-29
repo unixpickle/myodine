@@ -52,7 +52,7 @@ impl Session {
         for event in events {
             match event {
                 Event::Response(lane, msg) => {
-                    self.handle_message(msg);
+                    self.handle_message(log, msg);
                     self.populate_lane(lane)?;
                 },
                 Event::Timeout(lane) => {
@@ -75,8 +75,10 @@ impl Session {
         Ok(())
     }
 
-    fn handle_message(&mut self, msg: Message) {
+    fn handle_message(&mut self, log: &Sender<String>, msg: Message) {
         if msg.answers.len() != 1 || msg.header.truncated {
+            log.send(format!("invalid response (truncated={}, answers={})", msg.header.truncated,
+                msg.answers.len())).unwrap();
             return;
         }
         if let Ok(raw_body) = self.info.record_code.decode_body(&msg.answers[0].body) {
