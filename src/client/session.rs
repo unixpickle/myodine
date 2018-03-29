@@ -56,6 +56,7 @@ impl Session {
                     self.populate_lane(lane)?;
                 },
                 Event::Timeout(lane) => {
+                    log.send(format!("lane {}: timeout", lane)).unwrap();
                     self.populate_lane(lane)?;
                 },
                 Event::SendError(lane, msg) => {
