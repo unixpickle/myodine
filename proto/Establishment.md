@@ -22,8 +22,8 @@ Here is a breakdown of each field:
  * `<query-window>` - the client's outgoing window size.
  * `<response-window>` - the server's outgoing window size.
  * `<proof>` - a hexadecimal value storing the first 8 bytes of the SHA1 hash of `<password><time><password>`, where `time` is the current epoch time in seconds encoded as a decimal string. The server should not accept proofs for times that are off by more than a minute or so.
- * `<host>` - the host to proxy to.
  * `<port>` - the TCP port to proxy to.
+ * `<host>` - the host to proxy to.
 
 ## Response
 

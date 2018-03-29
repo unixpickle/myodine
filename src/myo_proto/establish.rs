@@ -56,7 +56,7 @@ pub fn password_proof(password: &str, cur_time: u64) -> u64 {
 }
 
 /// The contents of an establishment query.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct EstablishQuery {
     pub response_encoding: String,
     pub mtu: u16,
@@ -149,7 +149,7 @@ impl EstablishQuery {
 }
 
 /// A response to an establishment query.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum EstablishResponse {
     Success{id: u16, seq: u32},
     Failure(String),
@@ -194,5 +194,45 @@ impl Encoder for EstablishResponse {
                 Err("cannot encode unknown establish response".to_owned())
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn query_encoding() {
+        let query = EstablishQuery{
+            response_encoding: "raw".to_owned(),
+            mtu: 123,
+            name_encoding: "b64".to_owned(),
+            query_window: 64,
+            response_window: 32,
+            proof: 0x913379,
+            port: 1337,
+            host: "foo.bob.com".parse().unwrap()
+        };
+        let encoded = query.to_domain(&"baz.proxy.com".parse().unwrap()).unwrap();
+        let expected = "eraw.123.b64.64.32.913379.1337.foo.bob.com.baz.proxy.com";
+        assert_eq!(expected.parse::<Domain>().unwrap(), encoded);
+    }
+
+    #[test]
+    fn query_decoding() {
+        let query = EstablishQuery::from_domain(
+            &"eraw.123.b64.64.32.913379.1337.foo.bob.com.baz.proxy.com".parse().unwrap(),
+            &"baz.proxy.com".parse().unwrap()
+        ).unwrap();
+        assert_eq!(query, EstablishQuery{
+            response_encoding: "raw".to_owned(),
+            mtu: 123,
+            name_encoding: "b64".to_owned(),
+            query_window: 64,
+            response_window: 32,
+            proof: 0x913379,
+            port: 1337,
+            host: "foo.bob.com".parse().unwrap()
+        });
     }
 }
