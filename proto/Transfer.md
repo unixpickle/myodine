@@ -92,3 +92,22 @@ In order to increase performance, clients can make multiple DNS queries concurre
  * If all slots have been free for more than P seconds, send a poll query.
 
 The server can operate in a way which is agnostic to the client's parallelism. For every query, it can simply send the next chunk in a round-robin fashion.
+
+# Known Issues
+
+Currently, EOFs are not guaranteed to work immediately for the server or client. Currently, the best solution to this is to only clean up sessions on the server after an activity timeout, rather than cleaning up after EOF.
+
+Consider the case where the client EOF's first:
+
+ * Client sends EOF.
+ * Server responds with EOF and ACK.
+ * Client considers itself done; does not ACK the server's EOF.
+
+Now the case where the server EOF's first:
+ * Server responds to some query with an EOF.
+ * Client sends a new query with an EOF and an ACK.
+ * Server responds with an ACK and then cleans up the session.
+ * If response is not dropped
+   * Cleanup happens properly on the client.
+ * If response is dropped
+   * The client tries to retransmit the packet, but the session is non-existent. It will never get an ACK.
