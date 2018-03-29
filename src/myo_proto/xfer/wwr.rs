@@ -192,3 +192,247 @@ impl WwrState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::iter::repeat;
+
+    #[test]
+    fn symmetric_single_window() {
+        let (mut end1, mut end2) = (trivial_endpoint(), trivial_endpoint());
+        for _ in 0..10 {
+            basic_xfer(&mut end1, &mut end2);
+        }
+        basic_eof(&mut end1);
+        basic_eof(&mut end2);
+    }
+
+    #[test]
+    fn multi_window() {
+        for i in 0..512 {
+            let mut state = WwrState::new(15, 5, 0xfffffdff + i);
+            for j in 1..15 {
+                reverse_window_in(&mut state, j);
+            }
+            windowed_eof(&mut state);
+        }
+    }
+
+    #[test]
+    fn out_of_bounds_ack() {
+        let mut state = WwrState::new(15, 5, 0xfffffffe);
+        state.push_send_buffer(vec![1, 2, 3]);
+        state.push_send_buffer(vec![4, 5]);
+        state.push_send_buffer(vec![6, 7, 8, 9]);
+        state.push_send_buffer(vec![10]);
+        state.push_send_buffer(vec![11, 12]);
+
+        // Technically this should be necessary.
+        for _ in 0..4 {
+            state.next_send_ack();
+            state.next_send_chunk();
+        }
+
+        assert_eq!(state.send_buffer_space(), 0);
+
+        // ACK past the end of the window.
+        state.handle_ack(&Ack{
+            window_start: 4,
+            window_mask: vec![true, true, true, true]
+        });
+        assert_eq!(state.send_buffer_space(), 0);
+
+        // This packet is ignored, because it indicates an invalid state.
+        // The window is ahead of -3, meaning that we've seen a more recent
+        // acknowledgement, so this stale ACK should not contain any bits that our
+        // our newer ACK did not.
+        state.handle_ack(&Ack{
+            window_start: 0xfffffffd,
+            window_mask: vec![true, true, true, true]
+        });
+        assert_eq!(state.send_buffer_space(), 0);
+
+        // This is also invalid, since we are ACK'ing packets past the window.
+        // However, the trailing ACKs are ignored in this case.
+        state.handle_ack(&Ack{
+            window_start: 0,
+            window_mask: vec![false, true, true, true]
+        });
+        assert_eq!(state.send_buffer_space(), 2);
+
+        // Packets within the maximum possible window, but not the current window.
+        state.handle_ack(&Ack{
+            window_start: 5,
+            window_mask: vec![true, true, true, true]
+        });
+        assert_eq!(state.send_buffer_space(), 2);
+        state.handle_ack(&Ack{
+            window_start: 4,
+            window_mask: vec![false, false, false, false]
+        });
+        assert_eq!(state.send_buffer_space(), 2);
+
+        // Fill up the window.
+        state.push_send_buffer(vec![3, 2, 1]);
+        state.push_send_buffer(vec![5, 4]);
+        for _ in 0..2 {
+            state.next_send_ack();
+            state.next_send_chunk();
+        }
+
+        // Now this ACK is in bounds.
+        state.handle_ack(&Ack{
+            window_start: 5,
+            window_mask: vec![true, true, true, true]
+        });
+        assert_eq!(state.send_buffer_space(), 5);
+    }
+
+    fn trivial_endpoint() -> WwrState {
+        WwrState::new(1, 1, 0)
+    }
+
+    fn basic_xfer(end1: &mut WwrState, end2: &mut WwrState) {
+        let space1 = end1.send_buffer_space();
+        let space2 = end2.send_buffer_space();
+        assert!(space1 > 0);
+        assert!(space2 > 0);
+
+        // Both ends send one chunk.
+        end1.push_send_buffer(vec![1, 2, 3, 4]);
+        end2.push_send_buffer(vec![4, 3, 2, 1, 0]);
+
+        // Simulate the first request.
+        let ack1 = end1.next_send_ack();
+        let chunk1 = end1.next_send_chunk().unwrap();
+        assert_eq!(chunk1.data, vec![1, 2, 3, 4]);
+        end2.handle_ack(&ack1);
+        assert_eq!(end2.handle_chunk(chunk1.clone()), vec![chunk1]);
+
+        let ack2 = end2.next_send_ack();
+        let chunk2 = end2.next_send_chunk().unwrap();
+        assert_eq!(chunk2.data, vec![4, 3, 2, 1, 0]);
+        end1.handle_ack(&ack2);
+        assert_eq!(end1.handle_chunk(chunk2.clone()), vec![chunk2]);
+
+        // Simulate the second request.
+        let ack3 = end1.next_send_ack();
+        let chunk3 = end1.next_send_chunk();
+        assert!(chunk3.is_none());
+        end2.handle_ack(&ack3);
+
+        let ack4 = end2.next_send_ack();
+        let chunk4 = end2.next_send_chunk();
+        assert!(chunk4.is_none());
+        end1.handle_ack(&ack4);
+
+        // Make sure the round-robin system isn't horribly broken.
+        for _ in 0..3 {
+            assert!(end1.next_send_chunk().is_none());
+            assert!(end2.next_send_chunk().is_none());
+        }
+
+        assert_eq!(end1.send_buffer_space(), space1);
+        assert_eq!(end2.send_buffer_space(), space2);
+    }
+
+    fn basic_eof(endpoint: &mut WwrState) {
+        let empty_chunk = Chunk{
+            seq: endpoint.next_send_ack().window_start,
+            data: Vec::new()
+        };
+        assert_eq!(endpoint.handle_chunk(empty_chunk.clone()), vec![empty_chunk]);
+
+        // We've gotten an EOF, but still haven't sent an EOF.
+        assert!(!endpoint.is_done());
+
+        endpoint.push_eof();
+        let next_chunk = endpoint.next_send_chunk().unwrap();
+        assert_eq!(next_chunk.data.len(), 0);
+
+        // We've sent an EOF, but haven't gotten an ACK.
+        assert!(!endpoint.is_done());
+
+        let ack = Ack{
+            window_start: (Wrapping(next_chunk.seq) + Wrapping(1)).0,
+            window_mask: repeat(false).take((endpoint.out_win_size - 1) as usize).collect()
+        };
+        endpoint.handle_ack(&ack);
+        assert!(endpoint.is_done());
+    }
+
+    fn windowed_eof(endpoint: &mut WwrState) {
+        let empty_chunk = Chunk{
+            seq: (Wrapping(endpoint.next_send_ack().window_start) + Wrapping(1)).0,
+            data: Vec::new()
+        };
+        assert_eq!(endpoint.handle_chunk(empty_chunk.clone()).len(), 0);
+        assert!(!endpoint.is_done());
+
+        let data_chunk = Chunk{
+            seq: endpoint.next_send_ack().window_start,
+            data: vec![1, 2, 3]
+        };
+        assert_eq!(endpoint.handle_chunk(data_chunk.clone()), vec![data_chunk, empty_chunk]);
+
+        // We've gotten an EOF, but still haven't sent an EOF.
+        assert!(!endpoint.is_done());
+
+        endpoint.push_send_buffer(vec![1, 2, 5, 4]);
+        let out_chunk = endpoint.next_send_chunk().unwrap();
+        assert_eq!(out_chunk.data, vec![1, 2, 5, 4]);
+
+        endpoint.push_eof();
+        // This is a subtle test for round-robin.
+        let eof_chunk = endpoint.next_send_chunk().unwrap();
+        assert_eq!(eof_chunk.data.len(), 0);
+
+        // We've sent an EOF, but haven't gotten an ACK.
+        assert!(!endpoint.is_done());
+
+        let ack = Ack{
+            window_start: out_chunk.seq,
+            window_mask: vec![true].into_iter()
+                .chain(repeat(false).take((endpoint.out_win_size - 2) as usize))
+                .collect()
+        };
+        endpoint.handle_ack(&ack);
+        assert!(!endpoint.is_done());
+
+        let ack = Ack{
+            window_start: (Wrapping(out_chunk.seq) + Wrapping(1)).0,
+            window_mask: repeat(false).take((endpoint.out_win_size - 1) as usize).collect()
+        };
+        endpoint.handle_ack(&ack);
+        assert!(endpoint.is_done());
+    }
+
+    fn reverse_window_in(endpoint: &mut WwrState, win_size: u32) {
+        let start_seq = endpoint.next_send_ack().window_start;
+        let mut final_chunks = Vec::new();
+        let mut window_mask = endpoint.next_send_ack().window_mask;
+        for i in (0u32..win_size).into_iter().rev() {
+            let chunk = Chunk{
+                seq: (Wrapping(start_seq) + Wrapping(i)).0,
+                data: vec![((i + 17) & 0xff) as u8]
+            };
+            final_chunks.insert(0, chunk.clone());
+            let chunks = endpoint.handle_chunk(chunk);
+            if i != 0 {
+                window_mask[(i - 1) as usize] = true;
+                assert_eq!(chunks.len(), 0);
+                assert_eq!(endpoint.next_send_ack(), Ack{
+                    window_start: start_seq,
+                    window_mask: window_mask.clone()
+                });
+            } else {
+                assert_eq!(chunks, final_chunks);
+                assert_eq!(endpoint.next_send_ack(), Ack{
+                    window_start: (Wrapping(start_seq) + Wrapping(win_size)).0,
+                    window_mask: repeat(false).take(window_mask.len()).collect()
+                });
+            }
+        }
+    }
+}
