@@ -60,8 +60,8 @@ impl Flags {
         }
 
         Ok(Flags{
-            listen_addr: String::from(matches.value_of("addr").unwrap_or("0.0.0.0:53")),
-            password: String::from(matches.value_of("password").unwrap_or("")),
+            listen_addr: matches.value_of("addr").unwrap_or("0.0.0.0:53").to_owned(),
+            password: matches.value_of("password").unwrap_or("").to_owned(),
             host: parse_arg!("host", "")?,
             conn_timeout: Duration::new(parse_arg!("conn-timeout", "5")?, 0),
             session_timeout: Duration::new(parse_arg!("sess-timeout", "60")?, 0),

@@ -54,16 +54,16 @@ pub trait NameCode {
     /// A tuple of the form (api_code, session_id, data).
     fn decode_domain(&self, name: &Domain, host: &Domain) -> Result<(char, u16, Vec<u8>), String> {
         if !domain_ends_with(name, host) {
-            Err(String::from("incorrect host domain"))
+            Err("incorrect host domain".to_owned())
         } else if name.parts().len() < host.parts().len() + 2 {
-            Err(String::from("not enough data"))
+            Err("not enough data".to_owned())
         } else {
             let mut all_parts = name.parts().to_vec();
             let sess_part = all_parts.remove(0);
             let api_code = sess_part.chars().next().unwrap();
             let sess_id = sess_part.chars().skip(1).collect::<String>().parse();
             if sess_id.is_err() {
-                return Err(String::from("invalid session ID"));
+                return Err("invalid session ID".to_owned());
             }
             Ok((api_code, sess_id.unwrap(),
                 self.decode_parts(&all_parts[0..(all_parts.len() - host.parts().len())])?))
@@ -88,7 +88,7 @@ impl NameCode for HexNameCode {
         hex_data.extend(parts.iter().map(|x| x as &str));
         let bytes = hex_data.as_bytes();
         if bytes.len() % 2 != 0 {
-            return Err(String::from("invalid data length"));
+            return Err("invalid data length".to_owned());
         }
         let mut data = Vec::new();
         for i in 0..(bytes.len() / 2) {

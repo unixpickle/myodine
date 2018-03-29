@@ -96,7 +96,7 @@ impl Encoder for Domain {
             for i in 0..(packet.data().len() - raw_data.len()) {
                 if packet.data()[i..(i + raw_data.len())] == raw_data[0..raw_data.len()] {
                     if i >= 0x3f00 {
-                        return Err(String::from("pointer address too high"));
+                        return Err("pointer address too high".to_owned());
                     }
                     let ptr_high = ((i & 0x3f00) >> 8) as u8;
                     let ptr_low = (i & 0xff) as u8;
@@ -128,13 +128,13 @@ impl Decoder for Domain {
                 }
                 return Domain::from_parts(parts);
             } else if size & 0xc0 != 0 {
-                return Err(String::from("invalid label length field"))
+                return Err("invalid label length field".to_owned())
             } else if size == 0 {
                 return Domain::from_parts(parts);
             } else {
                 match String::from_utf8(packet.read_bytes(size as usize)?) {
                     Ok(s) => parts.push(s),
-                    Err(_) => return Err(String::from("invalid UTF-8 label"))
+                    Err(_) => return Err("invalid UTF-8 label".to_owned())
                 }
             }
         }
@@ -154,13 +154,13 @@ mod tests {
     fn successful_parse() {
         let domain: Domain = "zoo-1bar.Aol9.123.AOE".parse().unwrap();
         assert_eq!(domain.0,
-            Vec::from_iter(["zoo-1bar", "Aol9", "123", "AOE"].iter().map(|x| String::from(*x))));
+            Vec::from_iter(["zoo-1bar", "Aol9", "123", "AOE"].iter().map(|x| x.to_owned())));
     }
 
     #[test]
     fn unsuccessful_parse() {
-        let strs = vec![String::from("zoo-.google.com"), String::from("-foo.google.com"),
-            "a".repeat(64), format!("{}.com", "aoeu.".repeat(50)), String::from("foo..com")];
+        let strs = vec!["zoo-.google.com".to_owned(), "-foo.google.com".to_owned(),
+            "a".repeat(64), format!("{}.com", "aoeu.".repeat(50)), "foo..com".to_owned()];
         for domain in strs {
             assert!(Domain::from_str(&domain).is_err());
         }

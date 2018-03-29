@@ -39,7 +39,7 @@ impl Highway {
         let mut senders = Vec::new();
         for i in 0..lanes {
             let lane = i;
-            let addr_copy = String::from(remote_addr);
+            let addr_copy = remote_addr.to_owned();
             let (sender, receiver) = channel();
             senders.push(sender);
             let local_sender = event_sender.clone();

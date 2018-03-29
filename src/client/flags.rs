@@ -107,12 +107,12 @@ impl Flags {
         let min_time: u64 = parse_arg!("query-min-time", "50")?;
         let max_time: u64 = parse_arg!("query-max-time", "5000")?;
         Ok(Flags{
-            addr: String::from(matches.value_of("addr").unwrap_or("localhost:53")),
+            addr: matches.value_of("addr").unwrap_or("localhost:53").to_owned(),
             host: parse_arg!("host", "")?,
             concurrency: parse_arg!("concurrency", "2")?,
             query_window: parse_arg!("query-window", "4")?,
             response_window: parse_arg!("response-window", "4")?,
-            password: String::from(matches.value_of("password").unwrap_or("")),
+            password: matches.value_of("password").unwrap_or("").to_owned(),
             remote_host: parse_arg!("remote-host", "127.0.0.1")?,
             remote_port: parse_arg!("remote-port", "22")?,
             listen_port: parse_arg!("listen-port", "2222")?,

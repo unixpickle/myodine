@@ -56,7 +56,7 @@ impl RecordCode for RawTxtCode {
             }
             Ok(result)
         } else {
-            Err(String::from("unexpected record type"))
+            Err("unexpected record type".to_owned())
         }
     }
 }

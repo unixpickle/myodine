@@ -28,7 +28,7 @@ impl EncPacket {
 
         let delta_length = self.0.len() - offset - 2;
         if delta_length > 0xffff {
-            Err(String::from("length field overflow"))
+            Err("length field overflow".to_owned())
         } else {
             self.0[offset] = (delta_length >> 8) as u8;
             self.0[offset + 1] = (delta_length & 0xff) as u8;

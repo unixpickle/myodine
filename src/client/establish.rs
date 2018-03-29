@@ -45,9 +45,9 @@ pub fn establish(flags: &Flags, features: Features) -> Result<Establishment, Str
     let conn = dial_udp(&flags.addr).map_err(|e| format!("dial {}: {}", flags.addr, e))?;
     conn.set_read_timeout(Some(Duration::new(5, 0))).map_err(|e| format!("{}", e))?;
     let response = query_with_retries(&conn, &message, 5)
-        .ok_or(String::from("no establishment response"))?;
+        .ok_or("no establishment response".to_owned())?;
     if response.answers.len() != 1 {
-        return Err(String::from("invalid response message"));
+        return Err("invalid response message".to_owned());
     }
     let raw_data = features.record_code.decode_body(&response.answers[0].body)?;
     match dns_decode(raw_data)? {
@@ -90,6 +90,6 @@ fn attempt_query(conn: &UdpSocket, msg: &Message) -> Result<Message, String> {
     if res.header.identifier == msg.header.identifier {
         Ok(res)
     } else {
-        Err(String::from("bad response identifier"))
+        Err("bad response identifier".to_owned())
     }
 }

@@ -72,10 +72,10 @@ impl Server {
                 }
 
             } else {
-                establish::EstablishResponse::Failure(String::from("no free session IDs"))
+                establish::EstablishResponse::Failure("no free session IDs".to_owned())
             }
         } else {
-            establish::EstablishResponse::Failure(String::from("invalid proof"))
+            establish::EstablishResponse::Failure("invalid proof".to_owned())
         };
         establish::establish_response(&message, &self.flags.host, response)
     }

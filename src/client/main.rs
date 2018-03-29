@@ -36,7 +36,7 @@ fn main_or_err() -> Result<(), String> {
     let listener = TcpListener::bind(&format!("localhost:{}", flags.listen_port)).
         map_err(|e| format!("listen error: {}", e))?;
 
-    log_sender.send(String::from("listening for connections...")).unwrap();
+    log_sender.send("listening for connections...".to_owned()).unwrap();
     loop {
         let (conn, addr) = listener.accept().map_err(|e| format!("accept error: {}", e))?;
         log_sender.send(format!("new connection from {}", addr)).unwrap();
@@ -56,8 +56,8 @@ fn handle_connection(flags: Flags, conn: TcpStream, log: &Sender<String>) -> Res
     log.send(format!("discovering features @{} for {}...", flags.host, flags.addr)).unwrap();
     let features = discover_features(&flags)
         .map_err(|e| format!("failed to discover features: {}", e))?;
-    log.send(String::from("establishing session...")).unwrap();
+    log.send("establishing session...".to_owned()).unwrap();
     let establishment = establish(&flags, features)?;
-    log.send(String::from("running session...")).unwrap();
+    log.send("running session...".to_owned()).unwrap();
     run_session(flags, conn, establishment, log)
 }

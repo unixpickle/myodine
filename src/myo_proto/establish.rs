@@ -27,7 +27,7 @@ pub fn establish_response(
     let equery = EstablishQuery::from_query(query, host)?;
     let question = &query.questions[0];
     let code = get_record_code(question.record_type, &equery.response_encoding)
-        .ok_or(String::from("no response encoding"))?;
+        .ok_or("no response encoding".to_owned())?;
     let body = code.encode_body(&dns_encode(&resp)?)?;
     let mut result = query.clone();
     result.answers.push(Record{
@@ -77,17 +77,17 @@ impl EstablishQuery {
     /// * `host` - The root domain name of the server.
     pub fn from_query(query: &Message, host: &Domain) -> Result<EstablishQuery, String> {
         if !is_establish_query(query) {
-            return Err(String::from("not an establish query"));
+            return Err("not an establish query".to_owned());
         }
         EstablishQuery::from_domain(&query.questions[0].domain, host)
     }
 
     fn from_domain(domain: &Domain, host: &Domain) -> Result<EstablishQuery, String> {
         if !domain_ends_with(domain, host) {
-            return Err(String::from("incorrect host domain"));
+            return Err("incorrect host domain".to_owned());
         }
         if domain.parts().len() - host.parts().len() < 8 {
-            return Err(String::from("not enough labels"));
+            return Err("not enough labels".to_owned());
         }
         let response_encoding = domain.parts()[0].chars().skip(1).collect();
         let mtu = domain.parts()[1].parse();
@@ -99,7 +99,7 @@ impl EstablishQuery {
         let host = &domain.parts()[7..(domain.parts().len() - host.parts().len())];
         if mtu.is_err() || query_window.is_err() || response_window.is_err() || proof.is_err() ||
             port.is_err() {
-            Err(String::from("invalid number in domain"))
+            Err("invalid number in domain".to_owned())
         } else {
             Ok(EstablishQuery{
                 response_encoding: response_encoding,
@@ -191,7 +191,7 @@ impl Encoder for EstablishResponse {
                 message.as_bytes().to_vec().dns_encode(packet)
             },
             &EstablishResponse::Unknown(_) => {
-                Err(String::from("cannot encode unknown establish response"))
+                Err("cannot encode unknown establish response".to_owned())
             }
         }
     }

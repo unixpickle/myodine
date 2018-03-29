@@ -21,7 +21,7 @@ pub fn is_download_gen_query(query: &Message) -> bool {
 /// Produce a response message for a domain hash query.
 pub fn domain_hash_response(query: &Message) -> Result<Message, String> {
     if !is_domain_hash_query(query) {
-        return Err(String::from("not a domain hash query"));
+        return Err("not a domain hash query".to_owned());
     }
     let mut result = query.clone();
     let question = &query.questions[0];
@@ -43,12 +43,12 @@ pub fn domain_hash_response(query: &Message) -> Result<Message, String> {
 /// Produce a response message for a download generation query.
 pub fn download_gen_response(query: &Message) -> Result<Message, String> {
     if !is_download_gen_query(query) {
-        return Err(String::from("not a download generation query"));
+        return Err("not a download generation query".to_owned());
     }
     let question = &query.questions[0];
     let parsed_query = DownloadGenQuery::from_domain(&question.domain)?;
     let encoder = get_record_code(question.record_type, &parsed_query.encoding)
-        .ok_or(String::from("no record code found"))?;
+        .ok_or("no record code found".to_owned())?;
     let mut result = query.clone();
     let encoded = encoder.encode_body(&parsed_query.generated_data())?;
     result.answers.push(Record{
@@ -87,7 +87,7 @@ impl DownloadGenQuery {
     /// Decode a `DownloadGenQuery` from a requested domain.
     pub fn from_domain(domain: &Domain) -> Result<DownloadGenQuery, String> {
         if domain.parts().len() < 5 {
-            return Err(String::from("not enough domain parts"));
+            return Err("not enough domain parts".to_owned());
         }
         let encoding = domain.parts()[0].chars().skip(1).collect();
         let len = domain.parts()[1].parse();
@@ -96,7 +96,7 @@ impl DownloadGenQuery {
         let modulus = domain.parts()[4].parse();
         if len.is_err() || bias.is_err() || coefficient.is_err() || modulus.is_err() ||
             *modulus.as_ref().unwrap() < 2 {
-            Err(String::from("invalid number in domain"))
+            Err("invalid number in domain".to_owned())
         } else {
             Ok(DownloadGenQuery{
                 encoding: encoding,
@@ -136,15 +136,15 @@ impl DownloadGenQuery {
         let mut total_bytes = host.parts().iter().chain((&parts).into_iter())
             .map(|x| x.len() + 1).sum::<usize>() + 1;
         if total_bytes % 2 != pad_to_len % 2 {
-            parts.push(String::from("xx"));
+            parts.push("xx".to_owned());
             total_bytes += 3;
         }
         while total_bytes < pad_to_len {
-            parts.push(String::from("x"));
+            parts.push("x".to_owned());
             total_bytes += 2;
         }
         if total_bytes > pad_to_len {
-            Err(String::from("target length is too short"))
+            Err("target length is too short".to_owned())
         } else {
             parts.extend(host.parts().to_vec());
             Domain::from_parts(parts)
@@ -163,7 +163,7 @@ mod tests {
     #[test]
     fn gen_query_to_domain() {
         let query = DownloadGenQuery{
-            encoding: String::from("raw"),
+            encoding: "raw".to_owned(),
             len: 100,
             bias: 123,
             coefficient: 13,

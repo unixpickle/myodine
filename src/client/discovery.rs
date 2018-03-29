@@ -22,9 +22,9 @@ pub fn discover_features(flags: &Flags) -> Result<Features, String> {
     // TODO: perform feature discovery here.
     Ok(Features{
         record_type: RecordType::TXT,
-        response_encoding: String::from("raw"),
+        response_encoding: "raw".to_owned(),
         response_mtu: flags.response_mtu.unwrap_or(64),
-        name_encoding: String::from("b16"),
+        name_encoding: "b16".to_owned(),
         query_mtu: flags.query_mtu.unwrap_or(64),
         name_code: get_name_code("b16").unwrap(),
         record_code: get_record_code(RecordType::TXT, "raw").unwrap()

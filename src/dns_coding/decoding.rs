@@ -30,7 +30,7 @@ impl DecPacket {
     /// Fails if a parameter is out of bounds.
     pub fn seek(&self, new_offset: usize, new_size: usize) -> Result<DecPacket, String> {
         if new_offset >= new_size || new_size > self.buffer.len() {
-            return Err(String::from("seek out of bounds"));
+            return Err("seek out of bounds".to_owned());
         }
         let mut res = Vec::new();
         for x in &self.buffer[0..new_size] {
@@ -76,7 +76,7 @@ impl DecPacket {
         let offset = self.offset;
         let result = f(self, len)?;
         if self.offset < len || self.offset - len != offset {
-            Err(String::from("incorrect length field"))
+            Err("incorrect length field".to_owned())
         } else {
             Ok(result)
         }
@@ -91,7 +91,7 @@ pub trait Decoder where Self: Sized {
 impl Decoder for u8 {
     fn dns_decode(packet: &mut DecPacket) -> Result<u8, String> {
         if packet.offset >= packet.buffer.len() {
-            Err(String::from("buffer underflow"))
+            Err("buffer underflow".to_owned())
         } else {
             packet.offset += 1;
             Ok(packet.buffer[packet.offset - 1])

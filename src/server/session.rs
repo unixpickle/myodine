@@ -28,9 +28,9 @@ impl Session {
         query: &EstablishQuery,
         timeout: Duration
     ) -> Result<Session, String> {
-        let name_code = get_name_code(&query.name_encoding).ok_or(String::from("bad name code"))?;
+        let name_code = get_name_code(&query.name_encoding).ok_or("bad name code".to_owned())?;
         let record_code = get_record_code(query_type, &query.response_encoding)
-            .ok_or(String::from("bad record code"))?;
+            .ok_or("bad record code".to_owned())?;
         let addr_str = format!("{}:{}", query.host, query.port);
         let addr = addr_str.parse().map_err(|e| format!("parse {}: {}", addr_str, e))?;
         let stream = TcpStream::connect_timeout(&addr, timeout)

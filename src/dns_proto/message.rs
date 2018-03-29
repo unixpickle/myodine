@@ -51,7 +51,7 @@ impl Encoder for Message {
             self.answers.len() != self.header.answer_count as usize ||
             self.authorities.len() != self.header.authority_count as usize ||
             self.additional.len() != self.header.additional_count as usize {
-            Err(String::from("mismatching length in header and vector"))
+            Err("mismatching length in header and vector".to_owned())
         } else {
             encode_all!(packet, self.header, self.questions, self.answers, self.authorities,
                 self.additional)
@@ -67,7 +67,7 @@ impl Decoder for Message {
         let authorities = packet.decode_all(header.authority_count as usize)?;
         let additional = packet.decode_all(header.additional_count as usize)?;
         if packet.remaining() > 0 {
-            Err(String::from("trailing data in packet"))
+            Err("trailing data in packet".to_owned())
         } else {
             Ok(Message{
                 header: header,
