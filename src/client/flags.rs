@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::time::Duration;
 
 use clap::{App, Arg};
@@ -16,7 +17,9 @@ pub struct Flags {
     pub remote_port: u16,
     pub listen_port: u16,
     pub query_min_time: Duration,
-    pub query_max_time: Duration
+    pub query_max_time: Duration,
+    pub query_mtu: Option<u16>,
+    pub response_mtu: Option<u16>
 }
 
 impl Flags {
@@ -74,6 +77,16 @@ impl Flags {
                 .value_name("INT")
                 .help("Set the minimum query delay in milliseconds")
                 .takes_value(true))
+            .arg(Arg::with_name("query-mtu")
+                .long("query-mtu")
+                .value_name("INT")
+                .help("Set the query MTU to an explicit value")
+                .takes_value(true))
+            .arg(Arg::with_name("response-mtu")
+                .long("response-mtu")
+                .value_name("INT")
+                .help("Set the response MTU to an explicit value")
+                .takes_value(true))
             .arg(Arg::with_name("addr")
                 .help("Set the address of the proxy")
                 .required(true)
@@ -105,6 +118,15 @@ impl Flags {
             listen_port: parse_arg!("listen-port", "2222")?,
             query_min_time: Duration::new((min_time / 1000), ((min_time % 1000) * 1000000) as u32),
             query_max_time: Duration::new((max_time / 1000), ((max_time % 1000) * 1000000) as u32),
+            query_mtu: parse_optional(matches.value_of("query-mtu"))?,
+            response_mtu: parse_optional(matches.value_of("response-mtu"))?
         })
+    }
+}
+
+fn parse_optional<T: FromStr>(x: Option<&str>) -> Result<Option<T>, String> {
+    match x {
+        Some(s) => s.parse().map_err(|_| format!("bad argument: {}", s)).map(Some),
+        None => Ok(None),
     }
 }
