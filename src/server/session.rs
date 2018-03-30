@@ -90,6 +90,6 @@ impl Session {
         // TODO: verify packet using sequence number!
         self.last_used = Instant::now();
         handle_packet_in(packet, &mut self.state, &mut self.conn);
-        next_packet_out(&mut self.state, &mut self.conn)
+        next_packet_out(&mut self.state, &mut self.conn).0
     }
 }

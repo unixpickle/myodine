@@ -116,8 +116,8 @@ impl Flags {
             remote_host: parse_arg!("remote-host", "127.0.0.1")?,
             remote_port: parse_arg!("remote-port", "22")?,
             listen_port: parse_arg!("listen-port", "2222")?,
-            query_min_time: Duration::new((min_time / 1000), ((min_time % 1000) * 1000000) as u32),
-            query_max_time: Duration::new((max_time / 1000), ((max_time % 1000) * 1000000) as u32),
+            query_min_time: Duration::from_millis(min_time),
+            query_max_time: Duration::from_millis(max_time),
             query_mtu: parse_optional(matches.value_of("query-mtu"))?,
             response_mtu: parse_optional(matches.value_of("response-mtu"))?
         })

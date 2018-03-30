@@ -63,8 +63,8 @@ impl Flags {
             listen_addr: matches.value_of("addr").unwrap_or("0.0.0.0:53").to_owned(),
             password: matches.value_of("password").unwrap_or("").to_owned(),
             host: parse_arg!("host", "")?,
-            conn_timeout: Duration::new(parse_arg!("conn-timeout", "5")?, 0),
-            session_timeout: Duration::new(parse_arg!("sess-timeout", "60")?, 0),
+            conn_timeout: Duration::from_secs(parse_arg!("conn-timeout", "5")?),
+            session_timeout: Duration::from_secs(parse_arg!("sess-timeout", "60")?),
             proof_window: parse_arg!("proof-win", "120")?
         })
     }

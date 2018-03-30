@@ -1,5 +1,5 @@
 use std::net::TcpStream;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
 use myodine::conn::{Highway, Event, TcpChunker};
@@ -8,12 +8,13 @@ use myodine::myo_proto::xfer::{Packet, WwrState, handle_packet_in, next_packet_o
 
 use flags::Flags;
 use establish::Establishment;
+use logger::{RawLogger, SessionLogger};
 
 pub fn run_session(
     flags: Flags,
     conn: TcpStream,
     info: Establishment,
-    log: &Sender<String>
+    logger: &RawLogger
 ) -> Result<(), String> {
     let (highway, events) = Highway::open(&flags.addr, flags.concurrency);
     let conn = TcpChunker::new(
@@ -29,9 +30,10 @@ pub fn run_session(
         info: info,
         host: flags.host,
         query_min_time: flags.query_min_time,
-        query_max_time: flags.query_max_time
+        query_max_time: flags.query_max_time,
+        logger: SessionLogger::new(logger.clone())
     };
-    session.run(log, events)
+    session.run(events)
 }
 
 struct Session {
@@ -41,26 +43,28 @@ struct Session {
     info: Establishment,
     host: Domain,
     query_min_time: Duration,
-    query_max_time: Duration
+    query_max_time: Duration,
+    logger: SessionLogger
 }
 
 impl Session {
-    pub fn run(&mut self, log: &Sender<String>, events: Receiver<Event>) -> Result<(), String> {
+    pub fn run(&mut self, events: Receiver<Event>) -> Result<(), String> {
         for lane in 0..self.highway.num_lanes() {
             self.populate_lane(lane)?;
         }
         for event in events {
             match event {
                 Event::Response(lane, msg) => {
-                    self.handle_message(log, msg);
+                    self.logger.log_response();
+                    self.handle_message(msg);
                     self.populate_lane(lane)?;
                 },
                 Event::Timeout(lane) => {
-                    log.send(format!("lane {}: timeout", lane)).unwrap();
+                    self.logger.log_timeout();
                     self.populate_lane(lane)?;
                 },
                 Event::SendError(lane, msg) => {
-                    log.send(format!("lane {}: error sending message: {}", lane, msg)).unwrap();
+                    self.logger.log_raw(format!("lane {}: error sending message: {}", lane, msg));
                 },
                 Event::ConnectError(lane, err) => {
                     return Err(format!("lane {}: error connecting: {}", lane, err));
@@ -76,10 +80,10 @@ impl Session {
         Ok(())
     }
 
-    fn handle_message(&mut self, log: &Sender<String>, msg: Message) {
+    fn handle_message(&mut self, msg: Message) {
         if msg.answers.len() != 1 || msg.header.truncated {
-            log.send(format!("invalid response (truncated={}, answers={})", msg.header.truncated,
-                msg.answers.len())).unwrap();
+            self.logger.log_raw(format!("invalid response (truncated={}, answers={})",
+                msg.header.truncated, msg.answers.len()));
             return;
         }
         if let Ok(raw_body) = self.info.record_code.decode_body(&msg.answers[0].body) {
@@ -90,11 +94,12 @@ impl Session {
     }
 
     fn handle_packet(&mut self, packet: Packet) {
-        handle_packet_in(packet, &mut self.state, &mut self.conn);
+        self.logger.log_inbound(handle_packet_in(packet, &mut self.state, &mut self.conn));
     }
 
     fn populate_lane(&mut self, lane: usize) -> Result<(), String> {
-        let packet = next_packet_out(&mut self.state, &mut self.conn);
+        let (packet, sent_size) = next_packet_out(&mut self.state, &mut self.conn);
+        self.logger.log_outbound(sent_size);
         let (api_code, data) = packet.encode_query()?;
         let message = Message::new_query(Question{
             domain: self.info.name_code.encode_domain(api_code, self.info.session_id, &data,
