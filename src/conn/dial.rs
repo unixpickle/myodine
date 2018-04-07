@@ -1,6 +1,6 @@
 use std::io;
 use std::io::ErrorKind;
-use std::net::{Ipv4Addr, SocketAddr, ToSocketAddrs, UdpSocket};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 
 /// Create a UDP socket and connect to an address.
 ///
@@ -20,11 +20,8 @@ impl ToSocketAddrs for OutgoingAddrRange {
 
     fn to_socket_addrs(&self) -> io::Result<Self::Iter> {
         let mut result = Vec::new();
-        // TODO: see if we can simply use a port of 0.
-        for port in 10000u16..65535u16 {
-            // TODO: do IPv6 as well!
-            result.extend((Ipv4Addr::new(0, 0, 0, 0), port).to_socket_addrs()?);
-        }
+        result.extend((Ipv4Addr::new(0, 0, 0, 0), 0u16).to_socket_addrs()?);
+        result.extend((Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0u16).to_socket_addrs()?);
         Ok(result.into_iter())
     }
 }
