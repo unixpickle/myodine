@@ -20,21 +20,54 @@ pub enum Event {
     SocketError(usize, io::Error)
 }
 
-/// A batch of open UDP sockets, each called "lanes".
-pub struct Highway {
+/// A batched DNS requester.
+pub trait Highway {
+    /// Get the number of virtual connections.
+    fn num_lanes(&self) -> usize;
+
+    /// Send a DNS message to the virtual connection.
+    ///
+    /// # Arguments
+    ///
+    /// * `lane`: The connection to use. This lane should not be busy.
+    /// * `message`: The message to send on the lane.
+    fn send(&self, lane: usize, message: Message);
+}
+
+/// A highway that opens one UDP socket per lane.
+pub struct UDPHighway {
+    min_time: Duration,
+    max_time: Duration,
     senders: Vec<Sender<(Message, Duration, Duration)>>
 }
 
-impl Highway {
+impl Highway for UDPHighway {
+    fn num_lanes(&self) -> usize {
+        self.senders.len()
+    }
+
+    fn send(&self, lane: usize, message: Message) {
+        self.senders[lane].send((message, self.min_time.clone(), self.max_time.clone())).ok();
+    }
+}
+
+impl UDPHighway {
     /// Create a new Highway and connect it to a remote address.
     ///
     /// # Arguments
     ///
-    /// * `remote_addr`: An "IP:port" pair.
-    /// * `lanes`: The number of connections.
+    /// * `remote_addr` - An "IP:port" pair.
+    /// * `lanes` - The number of UDP connections.
+    /// * `min_time` - the minimum time for a query to last.
+    /// * `max_time` - a soft upper bound on the time for a query to last.
     ///
-    /// Returns the new Highway and its corresponding event loop.
-    pub fn open(remote_addr: &str, lanes: usize) -> (Highway, Receiver<Event>) {
+    /// Returns the new UDPHighway and its corresponding event queue.
+    pub fn open(
+        remote_addr: &str,
+        lanes: usize,
+        min_time: Duration,
+        max_time: Duration
+    ) -> (UDPHighway, Receiver<Event>) {
         let (event_sender, event_receiver) = channel();
         let mut senders = Vec::new();
         for i in 0..lanes {
@@ -44,27 +77,14 @@ impl Highway {
             senders.push(sender);
             let local_sender = event_sender.clone();
             spawn(move || {
-                Highway::run_lane(lane, receiver, addr_copy, local_sender.clone());
+                UDPHighway::run_lane(lane, receiver, addr_copy, local_sender.clone());
             });
         }
-        (Highway{senders: senders}, event_receiver)
-    }
-
-    /// Get the number of concurrent connections.
-    pub fn num_lanes(&self) -> usize {
-        self.senders.len()
-    }
-
-    /// Send a DNS message to the specified connection.
-    ///
-    /// # Arguments
-    ///
-    /// * `lane`: The connection to use. This lane should not be busy.
-    /// * `message`: The message to send on the lane.
-    /// * `min_time`: The minimum time to wait before yielding a response.
-    /// * `max_time`: The maximum time before a `Timeout` event.
-    pub fn send(&self, lane: usize, message: Message, min_time: Duration, max_time: Duration) {
-        self.senders[lane].send((message, min_time, max_time)).ok();
+        (UDPHighway{
+            min_time: min_time,
+            max_time: max_time,
+            senders: senders
+        }, event_receiver)
     }
 
     fn run_lane(
@@ -75,9 +95,9 @@ impl Highway {
     ) {
         match dial_udp(&addr) {
             Ok(socket) => {
-                HighwayLane{
+                UDPHighwayLane{
                     lane: lane,
-                    seq_number: (Wrapping(lane as u16) * Wrapping(10)).0,
+                    seq_number: (Wrapping(lane as u16) * Wrapping(1337)).0,
                     sender: event_sender,
                     socket: socket
                 }.run_loop(receiver);
@@ -89,14 +109,14 @@ impl Highway {
     }
 }
 
-struct HighwayLane {
+struct UDPHighwayLane {
     lane: usize,
     seq_number: u16,
     sender: Sender<Event>,
     socket: UdpSocket
 }
 
-impl HighwayLane {
+impl UDPHighwayLane {
     fn run_loop(&mut self, receiver: Receiver<(Message, Duration, Duration)>) {
         for (mut message, min_time, max_time) in receiver {
             let send_res = if let Err(err) = self.send_message(message) {

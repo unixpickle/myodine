@@ -1,8 +1,7 @@
 use std::net::TcpStream;
 use std::sync::mpsc::Receiver;
-use std::time::Duration;
 
-use myodine::conn::{Highway, Event, TcpChunker};
+use myodine::conn::{Highway, Event, TcpChunker, UDPHighway};
 use myodine::dns_proto::{Domain, Message, Question, RecordClass};
 use myodine::myo_proto::xfer::{Packet, WwrState, handle_packet_in, next_packet_out};
 
@@ -16,7 +15,8 @@ pub fn run_session(
     info: Establishment,
     logger: &RawLogger
 ) -> Result<(), String> {
-    let (highway, events) = Highway::open(&flags.addr, flags.concurrency);
+    let (highway, events) = UDPHighway::open(&flags.addr, flags.concurrency,
+        flags.query_min_time, flags.query_max_time);
     let conn = TcpChunker::new(
         conn,
         info.query_mtu as usize,
@@ -24,26 +24,22 @@ pub fn run_session(
         info.response_window as usize
     ).map_err(|e| format!("error creating chunker: {}", e))?;
     let mut session = Session{
-        highway: highway,
+        highway: Box::new(highway),
         state: WwrState::new(info.response_window, info.query_window, info.seq_start),
         conn: conn,
         info: info,
         host: flags.host,
-        query_min_time: flags.query_min_time,
-        query_max_time: flags.query_max_time,
         logger: SessionLogger::new(logger.clone())
     };
     session.run(events)
 }
 
 struct Session {
-    highway: Highway,
+    highway: Box<Highway>,
     state: WwrState,
     conn: TcpChunker,
     info: Establishment,
     host: Domain,
-    query_min_time: Duration,
-    query_max_time: Duration,
     logger: SessionLogger
 }
 
@@ -107,7 +103,7 @@ impl Session {
             record_type: self.info.record_type,
             record_class: RecordClass::IN
         });
-        self.highway.send(lane, message, self.query_min_time, self.query_max_time);
+        self.highway.send(lane, message);
         Ok(())
     }
 }
