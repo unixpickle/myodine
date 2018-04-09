@@ -2,8 +2,6 @@ use std::io;
 
 use dns_proto::Message;
 
-use super::dial_udp;
-
 /// An event from a `Highway`.
 #[derive(Debug)]
 pub enum Event {

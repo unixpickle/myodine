@@ -1,6 +1,15 @@
 use std::io;
 use std::io::ErrorKind;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket, TcpStream};
+
+/// Create a TCP socket and connect to an address.
+///
+/// The address should parse into an "IP:port" pair.
+pub fn dial_tcp(addr: &str) -> io::Result<TcpStream> {
+    let remote = addr.parse::<SocketAddr>()
+        .map_err(|x| io::Error::new(ErrorKind::ConnectionRefused, x))?;
+    TcpStream::connect(remote)
+}
 
 /// Create a UDP socket and connect to an address.
 ///

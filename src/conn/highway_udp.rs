@@ -72,7 +72,7 @@ impl UDPHighway {
     ) {
         match dial_udp(&addr) {
             Ok(socket) => {
-                UDPHighwayLane{
+                Lane{
                     lane: lane,
                     seq_number: (Wrapping(lane as u16) * Wrapping(1337)).0,
                     sender: event_sender,
@@ -86,14 +86,14 @@ impl UDPHighway {
     }
 }
 
-struct UDPHighwayLane {
+struct Lane {
     lane: usize,
     seq_number: u16,
     sender: Sender<Event>,
     socket: UdpSocket
 }
 
-impl UDPHighwayLane {
+impl Lane {
     fn run_loop(&mut self, receiver: Receiver<(Message, Duration, Duration)>) {
         for (mut message, min_time, max_time) in receiver {
             let send_res = if let Err(err) = self.send_message(message) {
