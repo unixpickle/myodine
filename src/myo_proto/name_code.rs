@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use dns_proto::Domain;
 
-use super::util::domain_ends_with;
+use super::util::{domain_ends_with, domain_part_lowercase};
 
 /// Lookup the NameCode for the given identifier.
 pub fn get_name_code(name: &str) -> Option<Box<NameCode>> {
@@ -60,7 +60,7 @@ pub trait NameCode {
         } else {
             let mut all_parts = name.parts().to_vec();
             let sess_part = all_parts.remove(0);
-            let api_code = sess_part.chars().next().unwrap();
+            let api_code = domain_part_lowercase(&sess_part).chars().next().unwrap();
             let sess_id = sess_part.chars().skip(1).collect::<String>().parse();
             if sess_id.is_err() {
                 return Err("invalid session ID".to_owned());
