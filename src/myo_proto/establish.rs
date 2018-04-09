@@ -5,7 +5,7 @@ use dns_coding::{DecPacket, Decoder, EncPacket, Encoder, dns_encode};
 use dns_proto::{Domain, Message, Record, RecordHeader};
 
 use super::record_code::{get_record_code};
-use super::util::{is_api_query, domain_ends_with};
+use super::util::{is_api_query, domain_ends_with, domain_part_lowercase};
 
 /// Check if a DNS message is an establishment API call.
 pub fn is_establish_query(query: &Message) -> bool {
@@ -89,9 +89,10 @@ impl EstablishQuery {
         if domain.parts().len() - host.parts().len() < 8 {
             return Err("not enough labels".to_owned());
         }
-        let response_encoding = domain.parts()[0].chars().skip(1).collect();
+        let response_encoding = domain_part_lowercase(&domain.parts()[0])
+            .chars().skip(1).collect();
         let mtu = domain.parts()[1].parse();
-        let name_encoding = domain.parts()[2].clone();
+        let name_encoding = domain_part_lowercase(&domain.parts()[2]);
         let query_window = domain.parts()[3].parse();
         let response_window = domain.parts()[4].parse();
         let proof = u64::from_str_radix(&domain.parts()[5], 16);

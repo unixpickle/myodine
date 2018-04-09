@@ -3,7 +3,7 @@ use std::net::Ipv4Addr;
 use dns_proto::{Domain, Message, Record, RecordHeader, RecordType, RecordBody};
 
 use super::record_code::get_record_code;
-use super::util::is_api_query;
+use super::util::{domain_part_lowercase, is_api_query};
 
 extern crate sha1;
 use self::sha1::Sha1;
@@ -89,7 +89,7 @@ impl DownloadGenQuery {
         if domain.parts().len() < 5 {
             return Err("not enough domain parts".to_owned());
         }
-        let encoding = domain.parts()[0].chars().skip(1).collect();
+        let encoding = domain_part_lowercase(&domain.parts()[0]).chars().skip(1).collect();
         let len = domain.parts()[1].parse();
         let bias = domain.parts()[2].parse();
         let coefficient = domain.parts()[3].parse();
