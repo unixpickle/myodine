@@ -28,7 +28,8 @@ impl Session {
         query: &EstablishQuery,
         timeout: Duration
     ) -> Result<Session, String> {
-        let name_code = get_name_code(&query.name_encoding).ok_or("bad name code".to_owned())?;
+        let name_code = get_name_code(&query.name_encoding)
+            .ok_or(format!("bad name code: {}", query.name_encoding))?;
         let record_code = get_record_code(query_type, &query.response_encoding)
             .ok_or("bad record code".to_owned())?;
         let addr_str = format!("{}:{}", query.host, query.port);
